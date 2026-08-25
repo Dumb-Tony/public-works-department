@@ -4,7 +4,7 @@ A living design package and standalone browser vertical slice for a systemic mun
 
 ## Play online
 
-**Public playtest build:** GitHub Pages URL will be added here as soon as the public repository is connected.
+**[Play the latest browser build](https://dumb-tony.github.io/public-works-department/)**
 
 ## Play the prototype
 
