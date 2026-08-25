@@ -51,6 +51,9 @@
       bestGrade: typeof history.bestGrade === "string" ? history.bestGrade : "—",
       downstreamClog: Boolean(history.downstreamClog),
       waterOutage: Boolean(history.waterOutage),
+      weakClamp: Boolean(history.weakClamp),
+      drainJobs: Number.isFinite(history.drainJobs) ? Math.max(0, Math.floor(history.drainJobs)) : 0,
+      waterJobs: Number.isFinite(history.waterJobs) ? Math.max(0, Math.floor(history.waterJobs)) : 0,
       lastResult: typeof history.lastResult === "string" ? history.lastResult : "No prior work orders"
     };
   }
@@ -60,7 +63,7 @@
     return {
       safety: 100,
       service: clamp(100 - (history.downstreamClog ? 16 : 0) - (history.waterOutage ? 18 : 0), 0, 100),
-      quality: 100
+      quality: history.weakClamp ? 82 : 100
     };
   }
 
@@ -68,11 +71,12 @@
     return JOB_TRANSITIONS[step]?.[event] || step;
   }
 
-  function persistentOutcome({ success, rushed, waterValveClosed }) {
+  function persistentOutcome({ success, rushed, waterValveClosed, jobType = "drain" }) {
     if (!success) {
       return {
         downstreamClog: false,
         waterOutage: false,
+        weakClamp: false,
         lastResult: "Flood response missed"
       };
     }
@@ -80,20 +84,31 @@
       return {
         downstreamClog: Boolean(rushed),
         waterOutage: true,
-        lastResult: "Drain open; Maple Diner water outage pending"
+        weakClamp: jobType === "water" && Boolean(rushed),
+        lastResult: jobType === "water" ? "Water main clamped; Maple Diner outage pending" : "Drain open; Maple Diner water outage pending"
+      };
+    }
+    if (rushed && jobType === "water") {
+      return {
+        downstreamClog: false,
+        waterOutage: false,
+        weakClamp: true,
+        lastResult: "Water restored; temporary clamp callback pending"
       };
     }
     if (rushed) {
       return {
         downstreamClog: true,
         waterOutage: false,
+        weakClamp: false,
         lastResult: "Drain open; downstream blockage pending"
       };
     }
     return {
       downstreamClog: false,
       waterOutage: false,
-      lastResult: "Drain cleared with no callback"
+      weakClamp: false,
+      lastResult: jobType === "water" ? "Water main clamped and pressure verified" : "Drain cleared with no callback"
     };
   }
 

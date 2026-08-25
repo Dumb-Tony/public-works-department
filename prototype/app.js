@@ -22,6 +22,7 @@
     startPanel: document.querySelector("#startPanel"),
     endPanel: document.querySelector("#endPanel"),
     startButton: document.querySelector("#startButton"),
+    waterButton: document.querySelector("#waterButton"),
     againButton: document.querySelector("#againButton"),
     resetButton: document.querySelector("#resetButton"),
     restartButton: document.querySelector("#restartButton"),
@@ -56,7 +57,8 @@
     hydrant: { x: 754, y: 416 },
     inlet: { x: 682, y: 395 },
     utility: { x: 724, y: 405 },
-    valve: { x: 792, y: 448 }
+    valve: { x: 792, y: 448 },
+    waterLeak: { x: 794, y: 348 }
   };
 
   const trafficTemplate = [
@@ -161,15 +163,18 @@
     oscillator.stop(audio.currentTime + duration);
   }
 
-  function freshGame() {
+  function freshGame(jobType = "drain") {
     const scores = createInitialScores(history);
+    const waterJob = jobType === "water";
+    const callbackActive = waterJob ? history.weakClamp || history.waterOutage : history.downstreamClog || history.waterOutage;
     return {
+      jobType,
       mode: "title",
       paused: false,
       elapsed: 0,
       grade: computeOverallScore(scores),
-      gradeReason: history.downstreamClog || history.waterOutage ? "Yesterday's callback has reduced today's opening service score." : "Call received. The clock is running.",
-      flood: history.downstreamClog ? 34 : 18,
+      gradeReason: callbackActive ? "Yesterday's callback has weakened today's opening position." : "Call received. The clock is running.",
+      flood: waterJob ? (history.weakClamp ? 38 : 20) : (history.downstreamClog ? 34 : 18),
       work: 0,
       locateWork: 0,
       verifyWork: 0,
@@ -201,8 +206,8 @@
     };
   }
 
-  function startGame() {
-    game = freshGame();
+  function startGame(jobType = "drain") {
+    game = freshGame(jobType);
     game.mode = "playing";
     keys.clear();
     justPressed.clear();
@@ -253,6 +258,8 @@
       game.flood = clamp(game.flood - 3.5 * dt, 0, 100);
     } else if (game.step === "cleanup" || game.step === "return") {
       game.flood = clamp(game.flood - (game.rushed ? 2 : 7) * dt, 0, 100);
+    } else if (game.jobType === "water" && game.step === "clear" && game.waterValveClosed) {
+      game.flood = clamp(game.flood - 2.5 * dt, 0, 100);
     } else {
       game.flood = clamp(game.flood + (game.step === "clear" ? 0.65 : 1.05) * dt, 0, 100);
     }
@@ -267,7 +274,9 @@
 
     const repairRestored = game.step === "verify" || game.step === "cleanup" || game.step === "return";
     if ((!repairRestored && game.flood >= 100) || game.grade <= 20) {
-      finish(false, "The intersection flooded before the drain was restored.");
+      finish(false, game.jobType === "water"
+        ? "The main break flooded Grand Avenue before the crew restored control."
+        : "The intersection flooded before the drain was restored.");
     }
     syncUI();
   }
@@ -328,8 +337,11 @@
 
   function handleInteraction(dt) {
     const atTruck = distance(game.player, { x: 188, y: 474 }) < 94;
-    const atDrain = distance(game.player, world.drain) < 52;
-    const atUtility = distance(game.player, world.utility) < 56;
+    const waterJob = game.jobType === "water";
+    const repairTarget = waterJob ? world.waterLeak : world.drain;
+    const locateTarget = waterJob ? world.waterLeak : world.utility;
+    const atRepair = distance(game.player, repairTarget) < 52;
+    const atLocate = distance(game.player, locateTarget) < 56;
     const atValve = distance(game.player, world.valve) < 46;
     game.prompt = "";
 
@@ -355,14 +367,16 @@
           game.carrying = "locator";
           cue("pickup");
           advanceJob("locator_taken");
-          game.gradeReason = "Locate the blue water service before using a steel rake.";
+          game.gradeReason = waterJob
+            ? "Trace the leaking main before isolating or clamping it."
+            : "Locate the blue water service before using a steel rake.";
         }
       } else {
         game.prompt = "Return to Unit 12 for the utility locator";
       }
     } else if (game.step === "locate") {
-      if (!atUtility) {
-        game.prompt = "Bring the locator to the pulsing utility mark";
+      if (!atLocate) {
+        game.prompt = waterJob ? "Bring the locator to the bubbling pavement" : "Bring the locator to the pulsing utility mark";
       } else {
         game.prompt = "Hold E · Sweep for buried service";
         if (keys.has("KeyE")) {
@@ -373,32 +387,40 @@
             game.utilityMarked = true;
             game.carrying = null;
             advanceJob("utility_marked");
-            game.gradeReason = "Water service marked in blue. Steel tools may stay west of the line.";
+            game.gradeReason = waterJob
+              ? "Leak and main marked. Retrieve the valve key and clamp kit."
+              : "Water service marked in blue. Steel tools may stay west of the line.";
           }
         }
       }
     } else if (game.step === "tool") {
       if (atTruck) {
-        game.prompt = "E · Take drain rake";
+        game.prompt = waterJob ? "E · Take valve key and clamp kit" : "E · Take drain rake";
         if (justPressed.has("KeyE")) {
-          game.carrying = "rake";
+          game.carrying = waterJob ? "clamp" : "rake";
           cue("pickup");
           game.toolRetrieved = true;
           advanceJob("tool_taken");
-          game.gradeReason = "Work zone secured. Clear the inlet before it overtops.";
+          game.gradeReason = waterJob
+            ? "Close the marked valve, then clamp the leaking main."
+            : "Work zone secured. Clear the inlet before it overtops.";
         }
       } else {
-        game.prompt = "Return to Unit 12 for the drain rake";
+        game.prompt = waterJob ? "Return to Unit 12 for the clamp kit" : "Return to Unit 12 for the drain rake";
       }
     } else if (game.step === "clear") {
-      if (!atDrain) {
-        game.prompt = "Bring the drain rake to the flashing inlet";
+      if (waterJob && !game.waterValveClosed) {
+        game.prompt = "Isolate the main at the blue valve box before clamping";
+      } else if (!atRepair) {
+        game.prompt = waterJob ? "Bring the clamp kit to the bubbling pavement" : "Bring the drain rake to the flashing inlet";
       } else {
-        game.prompt = "Hold E · Clear carefully   |   R · Rush flush";
+        game.prompt = waterJob ? "Hold E · Fit permanent clamp   |   R · Temporary patch" : "Hold E · Clear carefully   |   R · Rush flush";
         if (keys.has("KeyE")) {
-          game.work = clamp(game.work + 23 * dt, 0, 100);
-          game.flood = clamp(game.flood - 5.5 * dt, 0, 100);
-          game.gradeReason = `Clearing debris carefully… ${Math.floor(game.work)}%`;
+          game.work = clamp(game.work + (waterJob ? 18 : 23) * dt, 0, 100);
+          game.flood = clamp(game.flood - (waterJob ? 7.5 : 5.5) * dt, 0, 100);
+          game.gradeReason = waterJob
+            ? `Aligning and tightening permanent clamp… ${Math.floor(game.work)}%`
+            : `Clearing debris carefully… ${Math.floor(game.work)}%`;
           if (game.work >= 100) completeRepair(false);
         }
         if (justPressed.has("KeyR")) {
@@ -407,20 +429,26 @@
         }
       }
     } else if (game.step === "verify") {
-      if (!atDrain) {
-        game.prompt = "Return to the inlet and verify downstream flow";
+      if (waterJob && game.waterValveClosed) {
+        game.prompt = "Reopen the water valve before pressure testing";
+      } else if (!atRepair) {
+        game.prompt = waterJob ? "Return to the clamp and pressure-test the repair" : "Return to the inlet and verify downstream flow";
       } else {
-        game.prompt = "Hold E · Verify flow and rake bars";
+        game.prompt = waterJob ? "Hold E · Pressure-test clamp" : "Hold E · Verify flow and rake bars";
         if (keys.has("KeyE")) {
           game.verifyWork = clamp(game.verifyWork + 42 * dt, 0, 100);
           game.flood = clamp(game.flood - 11 * dt, 0, 100);
-          game.gradeReason = `Testing drainage flow… ${Math.floor(game.verifyWork)}%`;
+          game.gradeReason = waterJob
+            ? `Pressure-testing repaired main… ${Math.floor(game.verifyWork)}%`
+            : `Testing drainage flow… ${Math.floor(game.verifyWork)}%`;
           if (game.verifyWork >= 100) {
             cue("verify");
             game.flowVerified = true;
             game.carrying = null;
             advanceJob("flow_verified");
-            game.gradeReason = "Flow verified. Recover all cones before reopening Grand Avenue.";
+            game.gradeReason = waterJob
+              ? "Pressure stable and service restored. Recover cones before reopening Grand Avenue."
+              : "Flow verified. Recover all cones before reopening Grand Avenue.";
           }
         }
       }
@@ -442,9 +470,14 @@
       if (atTruck) {
         game.prompt = "E · Close work order at Unit 12";
         if (justPressed.has("KeyE")) {
-          finish(true, game.rushed
-            ? "The street reopened, but the unverified rush flush lodged debris downstream."
-            : "The drain is flowing, utilities are intact, and Grand Avenue is safely reopened.");
+          const summary = waterJob
+            ? (game.rushed
+              ? "The street reopened on a temporary clamp that may not survive the next pressure cycle."
+              : "The main is clamped, pressure is stable, and customer service is restored.")
+            : (game.rushed
+              ? "The street reopened, but the unverified rush flush lodged debris downstream."
+              : "The drain is flowing, utilities are intact, and Grand Avenue is safely reopened.");
+          finish(true, summary);
         }
       } else {
         game.prompt = "Return to Unit 12 to close the work order";
@@ -463,10 +496,15 @@
     game.valveOperations += 1;
     if (game.waterValveClosed) {
       cue("alert");
-      penalize("service", 12, "Wrong valve closed: Maple Diner has lost water service.");
+      const plannedIsolation = game.jobType === "water" && game.step === "clear";
+      penalize("service", plannedIsolation ? 4 : 12, plannedIsolation
+        ? "Main isolated: Maple Diner water service is temporarily offline."
+        : "Wrong valve closed: Maple Diner has lost water service.");
     } else {
       cue("verify");
-      game.gradeReason = "Maple Diner water restored. The outage remains on the incident report.";
+      game.gradeReason = game.jobType === "water"
+        ? "Water service restored. Pressure-test the clamp before reopening."
+        : "Maple Diner water restored. The outage remains on the incident report.";
     }
   }
 
@@ -476,12 +514,16 @@
     game.carrying = null;
     if (rushed) {
       cue("alert");
-      penalize("quality", 36, "Rush flush used: debris moved downstream without a flow test.");
+      penalize("quality", 36, game.jobType === "water"
+        ? "Temporary clamp used: repair skipped torque and pressure verification."
+        : "Rush flush used: debris moved downstream without a flow test.");
       advanceJob("repair_rushed");
     } else {
       cue("repair");
       advanceJob("repair_careful");
-      game.gradeReason = "Blockage removed. Verify flow before reopening the street.";
+      game.gradeReason = game.jobType === "water"
+        ? "Clamp installed. Reopen the valve and pressure-test before cleanup."
+        : "Blockage removed. Verify flow before reopening the street.";
     }
   }
 
@@ -524,16 +566,19 @@
     stopRain();
     const letter = gradeLetter(game.grade);
 
-    const outcome = persistentOutcome({ success, rushed: game.rushed, waterValveClosed: game.waterValveClosed });
+    const outcome = persistentOutcome({ success, rushed: game.rushed, waterValveClosed: game.waterValveClosed, jobType: game.jobType });
     history.shifts += 1;
     history.downstreamClog = outcome.downstreamClog;
     history.waterOutage = outcome.waterOutage;
+    history.weakClamp = outcome.weakClamp;
+    if (success && game.jobType === "water") history.waterJobs += 1;
+    if (success && game.jobType === "drain") history.drainJobs += 1;
     history.lastResult = outcome.lastResult;
     history.bestGrade = bestGrade(history.bestGrade, letter);
     saveHistory();
 
     ui.endTitle.textContent = success ? `Service grade: ${letter}` : "Call failed";
-    const callbackSaved = game.rushed || game.waterValveClosed;
+    const callbackSaved = outcome.downstreamClog || outcome.waterOutage || outcome.weakClamp;
     ui.endSummary.textContent = `${summary} Response ${formatTime(game.elapsed)}; ${game.collisions} traffic incident${game.collisions === 1 ? "" : "s"}.` + (callbackSaved ? " This callback is saved for the next shift." : "");
     ui.endStats.innerHTML = [
       ["Safety", Math.round(game.scores.safety)],
@@ -550,6 +595,7 @@
   }
 
   function syncUI() {
+    const waterJob = game.jobType === "water";
     const score = Math.round(game.grade);
     const color = gradeColor(score);
     ui.grade.textContent = gradeLetter(score);
@@ -557,24 +603,25 @@
     ui.gradeMeter.style.width = `${score}%`;
     ui.gradeMeter.style.backgroundColor = color;
     ui.gradeReason.textContent = game.paused ? "Shift paused." : game.gradeReason;
-    ui.objective.textContent = {
+    const objective = {
       cones: game.carrying === "cone" ? "Place the cone on a striped marker" : "Build a three-cone traffic taper",
       locator: "Fetch the utility locator from Unit 12",
-      locate: "Mark the buried water service",
-      tool: "Fetch the drain rake from Unit 12",
-      clear: "Clear the flooded storm drain",
-      verify: "Verify downstream drainage flow",
+      locate: waterJob ? "Locate the leaking water main" : "Mark the buried water service",
+      tool: waterJob ? "Fetch the clamp kit from Unit 12" : "Fetch the drain rake from Unit 12",
+      clear: waterJob ? "Isolate and clamp the water main" : "Clear the flooded storm drain",
+      verify: waterJob ? "Restore service and pressure-test" : "Verify downstream drainage flow",
       cleanup: "Recover the traffic-control equipment",
       return: "Return to Unit 12 and close the order",
       done: game.result === "complete" ? "Work order closed" : "Dispatch escalation required"
-    }[game.step];
+    };
+    ui.objective.textContent = objective[game.step];
 
     const tasks = [
       ["Place three traffic cones", game.zoneSecured],
-      ["Locate buried water service", game.utilityMarked],
-      ["Retrieve drain rake", game.toolRetrieved],
-      ["Restore drainage", game.repairRestored],
-      ["Verify flow", game.flowVerified],
+      [waterJob ? "Locate leaking water main" : "Locate buried water service", game.utilityMarked],
+      [waterJob ? "Retrieve clamp kit" : "Retrieve drain rake", game.toolRetrieved],
+      [waterJob ? "Clamp main" : "Restore drainage", game.repairRestored],
+      [waterJob ? "Restore and pressure-test" : "Verify flow", game.flowVerified],
       ["Reopen street", game.result === "complete"]
     ];
     ui.checklist.innerHTML = tasks.map(([label, done]) => `<li class="${done ? "done" : ""}">${label}</li>`).join("");
@@ -584,6 +631,7 @@
       <span>Water service <strong>${!game.utilityMarked ? "Unknown" : game.waterValveClosed ? "OFF" : "Marked · ON"}</strong></span>
       <span>Safety / Service / Quality <strong>${Math.round(game.scores.safety)} / ${Math.round(game.scores.service)} / ${Math.round(game.scores.quality)}</strong></span>
       <span>Downstream line <strong>${history.downstreamClog ? "Restricted" : "Clear"}</strong></span>
+      <span>Completed drain / water calls <strong>${history.drainJobs} / ${history.waterJobs}</strong></span>
       <span>Prior shifts <strong>${history.shifts}</strong></span>`;
   }
 
@@ -659,19 +707,20 @@
   }
 
   function drawFlood() {
+    const source = game.jobType === "water" ? world.waterLeak : world.inlet;
     const radius = 38 + game.flood * 1.25;
-    const gradient = ctx.createRadialGradient(world.inlet.x, world.inlet.y, 5, world.inlet.x, world.inlet.y, radius);
+    const gradient = ctx.createRadialGradient(source.x, source.y, 5, source.x, source.y, radius);
     gradient.addColorStop(0, "rgba(74,160,196,.72)");
     gradient.addColorStop(1, "rgba(74,160,196,0)");
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.ellipse(world.inlet.x, world.inlet.y, radius * 1.2, radius * .55, -.08, 0, Math.PI * 2);
+    ctx.ellipse(source.x, source.y, radius * 1.2, radius * .55, -.08, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = "rgba(170,225,245,.35)";
     ctx.lineWidth = 2;
     for (let i = 0; i < 3; i++) {
       ctx.beginPath();
-      ctx.arc(world.inlet.x, world.inlet.y, 20 + ((game.elapsed * 18 + i * 25) % Math.max(30, radius)), 0, Math.PI * 1.4);
+      ctx.arc(source.x, source.y, 20 + ((game.elapsed * 18 + i * 25) % Math.max(30, radius)), 0, Math.PI * 1.4);
       ctx.stroke();
     }
   }
@@ -700,19 +749,25 @@
       ctx.lineWidth = 4;
       ctx.setLineDash([12, 8]);
       ctx.beginPath();
-      ctx.moveTo(world.utility.x, 340);
-      ctx.lineTo(world.utility.x, 480);
+      if (game.jobType === "water") {
+        ctx.moveTo(world.waterLeak.x, world.waterLeak.y);
+        ctx.lineTo(world.valve.x, world.valve.y);
+      } else {
+        ctx.moveTo(world.utility.x, 340);
+        ctx.lineTo(world.utility.x, 480);
+      }
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = "#259cdc";
       ctx.font = "800 10px sans-serif";
-      ctx.fillText("W", world.utility.x - 4, 385);
+      ctx.fillText("W", game.jobType === "water" ? world.waterLeak.x - 4 : world.utility.x - 4, game.jobType === "water" ? world.waterLeak.y - 18 : 385);
     }
 
     if (game.step === "locate") {
+      const locateTarget = game.jobType === "water" ? world.waterLeak : world.utility;
       ctx.strokeStyle = `rgba(255,210,82,${.55 + Math.sin(game.elapsed * 5) * .35})`;
       ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(world.utility.x, world.utility.y, 34, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(locateTarget.x, locateTarget.y, 34, 0, Math.PI * 2); ctx.stroke();
     }
 
     ctx.fillStyle = "#161d1d";
@@ -721,10 +776,34 @@
     for (let i = -16; i <= 16; i += 8) {
       ctx.beginPath(); ctx.moveTo(world.drain.x + i, world.drain.y - 6); ctx.lineTo(world.drain.x + i, world.drain.y + 6); ctx.stroke();
     }
-    if (game.step === "clear" || game.step === "verify") {
+    if (game.jobType === "drain" && (game.step === "clear" || game.step === "verify")) {
       ctx.strokeStyle = `rgba(255,210,82,${.55 + Math.sin(game.elapsed * 5) * .35})`;
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(world.drain.x, world.drain.y, 32, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    if (game.jobType === "water") {
+      ctx.strokeStyle = "#182427";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(world.waterLeak.x - 20, world.waterLeak.y - 12);
+      ctx.lineTo(world.waterLeak.x - 7, world.waterLeak.y - 2);
+      ctx.lineTo(world.waterLeak.x + 4, world.waterLeak.y - 9);
+      ctx.lineTo(world.waterLeak.x + 19, world.waterLeak.y + 10);
+      ctx.stroke();
+      if (!game.repairRestored) {
+        ctx.strokeStyle = "rgba(150,225,255,.85)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(world.waterLeak.x, world.waterLeak.y - 4);
+        ctx.lineTo(world.waterLeak.x + Math.sin(game.elapsed * 9) * 5, world.waterLeak.y - 42);
+        ctx.stroke();
+      }
+      if (game.step === "clear" || game.step === "verify") {
+        ctx.strokeStyle = `rgba(255,210,82,${.55 + Math.sin(game.elapsed * 5) * .35})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(world.waterLeak.x, world.waterLeak.y, 34, 0, Math.PI * 2); ctx.stroke();
+      }
     }
 
     ctx.fillStyle = "#1684aa";
@@ -766,8 +845,17 @@
       return openTarget ? { x: openTarget.x, y: openTarget.y, label: "CONE MARKER" } : null;
     }
     if (["locator", "tool", "return"].includes(game.step)) return { x: 188, y: 474, label: "UNIT 12" };
-    if (game.step === "locate") return { ...world.utility, label: "UTILITY SWEEP" };
-    if (game.step === "clear" || game.step === "verify") return { ...world.drain, label: "STORM INLET" };
+    if (game.step === "locate") return game.jobType === "water"
+      ? { ...world.waterLeak, label: "LOCATE LEAK" }
+      : { ...world.utility, label: "UTILITY SWEEP" };
+    if (game.step === "clear") {
+      if (game.jobType === "water" && !game.waterValveClosed) return { ...world.valve, label: "ISOLATE VALVE" };
+      return game.jobType === "water" ? { ...world.waterLeak, label: "CLAMP MAIN" } : { ...world.drain, label: "STORM INLET" };
+    }
+    if (game.step === "verify") {
+      if (game.jobType === "water" && game.waterValveClosed) return { ...world.valve, label: "RESTORE VALVE" };
+      return game.jobType === "water" ? { ...world.waterLeak, label: "PRESSURE TEST" } : { ...world.drain, label: "STORM INLET" };
+    }
     if (game.step === "cleanup") {
       const nearest = nearestPlacedCone();
       return nearest ? { ...coneTargets[nearest.index], label: "RECOVER CONE" } : { x: 188, y: 474, label: "UNIT 12" };
@@ -861,6 +949,15 @@
       ctx.strokeStyle = "#303938"; ctx.lineWidth = 5;
       ctx.beginPath(); ctx.moveTo(p.x + 18, p.y + 27); ctx.lineTo(p.x + 38, p.y + 19); ctx.stroke();
     }
+    if (game.carrying === "clamp") {
+      ctx.fillStyle = "#d6a52b";
+      ctx.fillRect(p.x + 12, p.y - 5, 27, 22);
+      ctx.fillStyle = "#2a3432";
+      ctx.fillRect(p.x + 16, p.y - 1, 19, 4);
+      ctx.strokeStyle = "#b9c2bd";
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(p.x + 26, p.y + 22, 10, .2, Math.PI * 1.7); ctx.stroke();
+    }
     if (game.carrying === "locator") {
       ctx.fillStyle = "#e8b62e";
       ctx.fillRect(p.x + 12, p.y - 5, 12, 19);
@@ -894,9 +991,9 @@
     ctx.strokeRect(31, 49, 186, 8);
 
     const progress = {
-      locate: ["UTILITY LOCATE", game.locateWork],
-      clear: ["DRAIN CLEARANCE", game.work],
-      verify: ["FLOW VERIFICATION", game.verifyWork]
+      locate: [game.jobType === "water" ? "LEAK LOCATION" : "UTILITY LOCATE", game.locateWork],
+      clear: [game.jobType === "water" ? "CLAMP INSTALLATION" : "DRAIN CLEARANCE", game.work],
+      verify: [game.jobType === "water" ? "PRESSURE TEST" : "FLOW VERIFICATION", game.verifyWork]
     }[game.step];
     if (progress && progress[1] > 0) {
       ctx.fillStyle = "rgba(12,21,18,.9)";
@@ -931,11 +1028,12 @@
   }
 
   function updateHistoryNote() {
-    if (history.downstreamClog || history.waterOutage) {
+    if (history.downstreamClog || history.waterOutage || history.weakClamp) {
       ui.historyNote.hidden = false;
       const callbacks = [];
       if (history.downstreamClog) callbacks.push("debris was pushed into the downstream drain");
       if (history.waterOutage) callbacks.push("Maple Diner was left without water service");
+      if (history.weakClamp) callbacks.push("a temporary water-main clamp needs follow-up");
       ui.historyNote.textContent = `CALLBACK: Last shift ${callbacks.join(" and ")}. Today's opening service score is reduced.`;
     } else if (history.shifts > 0) {
       ui.historyNote.hidden = false;
@@ -958,8 +1056,9 @@
   window.addEventListener("keyup", (event) => keys.delete(event.code));
   window.addEventListener("blur", () => { keys.clear(); if (game.mode === "playing") game.paused = true; });
 
-  ui.startButton.addEventListener("click", startGame);
-  ui.restartButton.addEventListener("click", startGame);
+  ui.startButton.addEventListener("click", () => startGame("drain"));
+  ui.waterButton.addEventListener("click", () => startGame("water"));
+  ui.restartButton.addEventListener("click", () => startGame(game.jobType));
   ui.muteButton.addEventListener("click", () => {
     audioMuted = !audioMuted;
     try { localStorage.setItem(AUDIO_KEY, String(audioMuted)); } catch { /* preference stays in memory */ }

@@ -1,7 +1,7 @@
 # Public Works Department — Build Preparation Package
 
 **Companion to:** `GDD.md`  
-**Current target:** Playable build 0.2 → validated slice 0.3
+**Current target:** Two-job playable build 0.6 → progression build 0.7
 **Scope rule:** Do not add a second location before the first call satisfies every P0 acceptance criterion.
 
 ## 1. Prioritized prototype backlog
@@ -44,7 +44,7 @@
 
 - [x] Add a buried water service crossing and locator sweep.
 - [x] Add an interactable labeled valve box, visible customer outage, recovery, score penalty, and persistent wrong-valve callback.
-- [ ] Add a second “water bubbling through pavement” dispatch using the same space.
+- [x] Add a selectable “water bubbling through pavement” dispatch using the same intersection, traffic, locator, valve, clamp, verification, and callback systems.
 - [ ] Expand locator clues into a utility-map overlay; wrong-valve service outage is implemented.
 - [ ] Add pedestrian route and accessible detour requirements.
 - [ ] Add movable truck with parking/compartment-access consequences.
@@ -61,6 +61,8 @@
 ### M0 — Design proof (current)
 
 **Outcome:** A person can open the game, finish one drain call, understand why their grade changed, and cause/observe a callback.
+
+Build 0.6 exceeds the original M0 content target with a second water-main call and automated rules coverage; hands-on duration and comprehension gates remain open.
 
 Exit gate:
 

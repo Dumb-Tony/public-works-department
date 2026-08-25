@@ -34,7 +34,12 @@ Run `npm test` from the project root. There are no runtime dependencies and the 
 
 ## Current slice
 
-Respond to a clogged storm drain at a compact intersection. Fetch and place cones, use a utility locator to mark the buried water service, retrieve the drain rake, work around moving traffic, and decide whether to perform a careful repair or rush it. The adjacent water valve is live: operating the wrong valve visibly cuts service to Maple Diner, harms the Service score, can be restored during the call, and becomes a persistent callback if left closed. A complete shift includes flow verification, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, and persistent civic consequences.
+Choose between two dispatched calls at the same compact intersection:
+
+- **Storm drain flooding:** establish traffic control, locate the buried water service, clear or rush-flush the inlet, verify downstream flow, and avoid creating tomorrow’s blockage.
+- **Water main leak:** establish traffic control, locate the break, retrieve a valve key and clamp kit, isolate customer service, fit a permanent or temporary clamp, restore the valve, and pressure-test the repair.
+
+Both calls include equipment fetching, live traffic, runoff pressure, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, job counts, and persistent civic callbacks.
 
 ## Canonical repository and deployment policy
 

@@ -49,6 +49,9 @@ test("history migration fills missing callback fields", () => {
     bestGrade: "—",
     downstreamClog: true,
     waterOutage: false,
+    weakClamp: false,
+    drainJobs: 0,
+    waterJobs: 0,
     lastResult: "No prior work orders"
   });
   assert.equal(rules.createInitialScores({ downstreamClog: true, waterOutage: true }).service, 66);
@@ -58,12 +61,21 @@ test("persistent outcomes distinguish careful, rushed, and valve-outage results"
   assert.deepEqual(rules.persistentOutcome({ success: true, rushed: false, waterValveClosed: false }), {
     downstreamClog: false,
     waterOutage: false,
+    weakClamp: false,
     lastResult: "Drain cleared with no callback"
   });
   assert.equal(rules.persistentOutcome({ success: true, rushed: true, waterValveClosed: false }).downstreamClog, true);
   const outage = rules.persistentOutcome({ success: true, rushed: true, waterValveClosed: true });
   assert.equal(outage.downstreamClog, true);
   assert.equal(outage.waterOutage, true);
+  const weakClamp = rules.persistentOutcome({ success: true, rushed: true, waterValveClosed: false, jobType: "water" });
+  assert.equal(weakClamp.downstreamClog, false);
+  assert.equal(weakClamp.weakClamp, true);
+});
+
+test("water callbacks reduce opening quality without changing safety", () => {
+  const scores = rules.createInitialScores({ weakClamp: true });
+  assert.deepEqual(scores, { safety: 100, service: 100, quality: 82 });
 });
 
 test("best grade preserves the strongest recorded result", () => {
