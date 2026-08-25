@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12221f">
+  <title>Public Works Department — First Shift</title>
+  <meta name="description" content="A tiny systemic public works game: secure the street, clear the drain, and live with tomorrow's consequences.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="game-shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Bellwether Public Works · Crew 3</p>
+        <h1>First Shift</h1>
+      </div>
+      <div class="shift-chip" aria-label="Current conditions"><span class="rain-dot"></span> Heavy rain · 4:18 PM</div>
+    </header>
+
+    <section class="play-area" aria-label="Game prototype">
+      <div class="canvas-wrap">
+        <canvas id="game" width="960" height="600" tabindex="0" aria-label="Top-down public works game. Use WASD or arrow keys to move and E to interact."></canvas>
+        <div id="startPanel" class="overlay-card">
+          <p class="stamp">DISPATCH 14-07</p>
+          <h2>GRAND &amp; BIRCH IS FLOODING</h2>
+          <p>A storm drain is blocked. Secure the work zone, get the drain rake from Unit 12, and clear it before runoff reaches the storefronts.</p>
+          <div id="historyNote" class="history-note" hidden></div>
+          <button id="startButton" type="button">Answer the call</button>
+          <button id="resetButton" class="text-button" type="button">Reset town history</button>
+        </div>
+        <div id="endPanel" class="overlay-card" hidden>
+          <p class="stamp">WORK ORDER CLOSED</p>
+          <h2 id="endTitle">Shift complete</h2>
+          <p id="endSummary"></p>
+          <div id="endStats" class="end-stats"></div>
+          <button id="againButton" type="button">Start next shift</button>
+        </div>
+      </div>
+
+      <aside class="dispatch-panel" aria-live="polite">
+        <section>
+          <p class="panel-label">Service grade</p>
+          <div class="grade-row"><strong id="grade">A</strong><div class="meter"><span id="gradeMeter"></span></div></div>
+          <p id="gradeReason" class="small-copy">Call received. The clock is running.</p>
+        </section>
+        <section>
+          <p class="panel-label">Current order</p>
+          <h2 id="objective">Report to the intersection</h2>
+          <ol id="checklist" class="checklist"></ol>
+        </section>
+        <section>
+          <p class="panel-label">Town state</p>
+          <div id="townState" class="town-state"></div>
+        </section>
+        <section class="controls">
+          <p class="panel-label">Controls</p>
+          <p><kbd>WASD</kbd> move · <kbd>E</kbd> interact / work</p>
+          <p><kbd>Space</kbd> place cone · <kbd>R</kbd> rush repair · <kbd>P</kbd> pause</p>
+        </section>
+      </aside>
+    </section>
+
+    <footer>Prototype 0.1 · Consequences are saved on this device</footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
