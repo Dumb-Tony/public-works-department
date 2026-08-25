@@ -80,9 +80,11 @@ kbd { padding: 2px 5px; border: 1px solid #6f827a; border-bottom-width: 2px; bac
 .overlay-card p { color: var(--muted); line-height: 1.5; }
 .overlay-card button { width: 100%; margin-top: 14px; padding: 13px 16px; border: 0; background: var(--orange); color: #1a1710; font-weight: 900; text-transform: uppercase; cursor: pointer; }
 .overlay-card button:hover, .overlay-card button:focus-visible { background: var(--yellow); }
+.overlay-card button:disabled { cursor: not-allowed; opacity: .52; background: #50615a; color: #d0d6d2; }
+.overlay-card .upgrade-button { background: #2b6252; color: var(--ink); }
 .overlay-card .text-button { margin-top: 7px; padding: 8px; background: transparent; color: var(--muted); font-size: 12px; text-transform: none; }
 .history-note { padding: 10px 12px; border-left: 4px solid var(--red); background: rgba(255,102,93,.1); color: var(--ink) !important; font-size: 13px; }
-.end-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.end-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 7px; }
 .end-stats div { padding: 10px; background: #0f1c18; color: var(--muted); font-size: 11px; text-transform: uppercase; }
 .end-stats strong { display: block; margin-top: 3px; color: var(--ink); font-size: 18px; }
 footer { padding: 12px 2px; color: #75877f; font-size: 12px; }

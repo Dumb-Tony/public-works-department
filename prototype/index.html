@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#12221f">
   <title>Public Works Department — First Shift</title>
   <meta name="description" content="A tiny systemic public works game: secure the street, clear the drain, and live with tomorrow's consequences.">
-  <link rel="stylesheet" href="styles.css?v=0.6">
+  <link rel="stylesheet" href="styles.css?v=0.7">
 </head>
 <body>
   <main class="game-shell">
@@ -47,6 +47,7 @@
           <div id="historyNote" class="history-note" hidden></div>
           <button id="startButton" type="button">14-07 · Storm drain flooding</button>
           <button id="waterButton" type="button">14-08 · Water main leak</button>
+          <button id="upgradeButton" class="upgrade-button" type="button">Buy quick-load rack · $500</button>
           <button id="resetButton" class="text-button" type="button">Reset town history</button>
         </div>
         <div id="endPanel" class="overlay-card" hidden>
@@ -81,9 +82,9 @@
       </aside>
     </section>
 
-    <footer>Playable build 0.6 · Two systemic dispatch jobs · Tested rules</footer>
+    <footer>Playable build 0.7 · Persistent budget, trust, rank, and upgrade progression</footer>
   </main>
-  <script src="js/game-rules.js?v=0.6"></script>
-  <script src="app.js?v=0.6"></script>
+  <script src="js/game-rules.js?v=0.7"></script>
+  <script src="app.js?v=0.7"></script>
 </body>
 </html>

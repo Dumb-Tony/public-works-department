@@ -54,6 +54,9 @@
       weakClamp: Boolean(history.weakClamp),
       drainJobs: Number.isFinite(history.drainJobs) ? Math.max(0, Math.floor(history.drainJobs)) : 0,
       waterJobs: Number.isFinite(history.waterJobs) ? Math.max(0, Math.floor(history.waterJobs)) : 0,
+      budget: Number.isFinite(history.budget) ? Math.max(0, Math.round(history.budget)) : 900,
+      trust: Number.isFinite(history.trust) ? clamp(Math.round(history.trust), 0, 100) : 50,
+      rackUpgrade: Boolean(history.rackUpgrade),
       lastResult: typeof history.lastResult === "string" ? history.lastResult : "No prior work orders"
     };
   }
@@ -117,6 +120,23 @@
     return candidate < current ? candidate : current;
   }
 
+  function shiftEconomy(historyValue, { success, score, collisions }) {
+    const history = normalizeHistory(historyValue);
+    const basePayout = success ? Math.max(75, Math.round(220 * clamp(score, 0, 100) / 100)) : -120;
+    const incidentCost = Math.max(0, Math.floor(collisions)) * 45;
+    const budgetDelta = basePayout - incidentCost;
+    const trustDelta = success
+      ? (score >= 90 ? 3 : score >= 80 ? 2 : score >= 68 ? 1 : score >= 55 ? -1 : -3)
+      : -4;
+    return {
+      budget: Math.max(0, history.budget + budgetDelta),
+      trust: clamp(history.trust + trustDelta, 0, 100),
+      budgetDelta,
+      trustDelta,
+      incidentCost
+    };
+  }
+
   return Object.freeze({
     JOB_TRANSITIONS,
     bestGrade,
@@ -128,6 +148,7 @@
     nextJobStep,
     normalizeHistory,
     penalizeScore,
-    persistentOutcome
+    persistentOutcome,
+    shiftEconomy
   });
 });

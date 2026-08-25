@@ -326,6 +326,8 @@ No multiplayer networking, 3D, free driving, full utility-network propagation, N
 
 The same intersection now supports a second selectable water-main dispatch. The shared setup/closeout grammar remains intact, but the causal middle differs: locate bubbling pavement, retrieve a valve key and clamp kit, isolate the live main, install a permanent or temporary clamp, reopen customer service, and pressure-test. Rushing creates a weak-clamp callback; leaving the valve closed creates a visible Maple Diner outage. Completed drain and water calls are tracked separately in persistent town history.
 
+Build 0.7 adds the first economy/progression loop. Shift grade and traffic incidents determine department payout and incident costs; success quality changes town trust; successful job counts raise crew rank; and a persistent $500 quick-load rack purchase improves movement speed and reduces service-score time loss. This is intentionally one meaningful equipment choice before a broader shop is designed.
+
 ## 17. Browser technical approach
 
 - Plain HTML/CSS/JavaScript with Canvas 2D; no dependencies, bundler, or build step.
@@ -418,6 +420,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-013 | The marked water valve is operable after locating; closing it cuts visible service to Maple Diner and persists as a callback if left closed. | Turns buried-utility context into a recoverable, legible civic consequence rather than background decoration. | 2026-08-25 |
 | D-014 | Core scoring, persistence, and job transitions live in a dependency-free rules module shared by the browser and Node tests. | Enables reliable multi-job growth without sacrificing direct file opening or adding a build step. | 2026-08-25 |
 | D-015 | Build 0.6 adds a selectable water-main leak call using the same intersection and state grammar but different repair causality. | Proves the architecture can create another meaningful job without duplicating the entire game or adding a second location. | 2026-08-25 |
+| D-016 | Build 0.7 rewards shifts with persistent budget/trust and introduces a purchasable quick-load rack with a field-speed/time-pressure effect. | Establishes a real play→report→upgrade→replay loop without adding grind or multiple speculative currencies. | 2026-08-25 |
 
 ### Open questions
 

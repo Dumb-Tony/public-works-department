@@ -52,6 +52,9 @@ test("history migration fills missing callback fields", () => {
     weakClamp: false,
     drainJobs: 0,
     waterJobs: 0,
+    budget: 900,
+    trust: 50,
+    rackUpgrade: false,
     lastResult: "No prior work orders"
   });
   assert.equal(rules.createInitialScores({ downstreamClog: true, waterOutage: true }).service, 66);
@@ -82,4 +85,20 @@ test("best grade preserves the strongest recorded result", () => {
   assert.equal(rules.bestGrade("—", "C"), "C");
   assert.equal(rules.bestGrade("C", "A"), "A");
   assert.equal(rules.bestGrade("A", "D"), "A");
+});
+
+test("shift economy rewards quality and charges traffic incidents", () => {
+  const clean = rules.shiftEconomy({ budget: 900, trust: 50 }, { success: true, score: 92, collisions: 0 });
+  assert.deepEqual(clean, { budget: 1102, trust: 53, budgetDelta: 202, trustDelta: 3, incidentCost: 0 });
+  const incident = rules.shiftEconomy({ budget: 900, trust: 50 }, { success: true, score: 70, collisions: 2 });
+  assert.equal(incident.budgetDelta, 64);
+  assert.equal(incident.incidentCost, 90);
+  assert.equal(incident.trust, 51);
+});
+
+test("failed shifts cost budget and trust without going negative", () => {
+  const failed = rules.shiftEconomy({ budget: 50, trust: 2 }, { success: false, score: 20, collisions: 1 });
+  assert.equal(failed.budget, 0);
+  assert.equal(failed.trust, 0);
+  assert.equal(failed.budgetDelta, -165);
 });

@@ -1,7 +1,7 @@
 # Public Works Department — Build Preparation Package
 
 **Companion to:** `GDD.md`  
-**Current target:** Two-job playable build 0.6 → progression build 0.7
+**Current target:** Progression build 0.7 → content/tuning build 0.8
 **Scope rule:** Do not add a second location before the first call satisfies every P0 acceptance criterion.
 
 ## 1. Prioritized prototype backlog
@@ -50,7 +50,7 @@
 - [ ] Add movable truck with parking/compartment-access consequences.
 - [x] Add cleanup/reopen phase: verify flow, retrieve cones, and close the order at Unit 12.
 - [x] Add Safety, Service, and Quality score breakdown; response time remains in the closeout report.
-- [ ] Add small supply/fleet state carried between shifts.
+- [x] Add persistent department budget, town trust, job counts, crew rank, shift payouts/costs, and a purchasable quick-load rack upgrade.
 
 ### Deferred to Unity investigation
 

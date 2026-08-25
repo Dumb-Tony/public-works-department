@@ -13,7 +13,8 @@
     nextJobStep,
     normalizeHistory,
     penalizeScore,
-    persistentOutcome
+    persistentOutcome,
+    shiftEconomy
   } = rules;
 
   const canvas = document.querySelector("#game");
@@ -23,6 +24,7 @@
     endPanel: document.querySelector("#endPanel"),
     startButton: document.querySelector("#startButton"),
     waterButton: document.querySelector("#waterButton"),
+    upgradeButton: document.querySelector("#upgradeButton"),
     againButton: document.querySelector("#againButton"),
     resetButton: document.querySelector("#resetButton"),
     restartButton: document.querySelector("#restartButton"),
@@ -41,6 +43,7 @@
 
   const STORAGE_KEY = "pwd-first-shift-v1";
   const AUDIO_KEY = "pwd-audio-muted-v1";
+  const RACK_COST = 500;
   const W = canvas.width;
   const H = canvas.height;
   const keys = new Set();
@@ -196,7 +199,7 @@
       scores,
       result: null,
       prompt: "",
-      player: { x: 295, y: 492, radius: 13, speed: 168, hitCooldown: 0 },
+      player: { x: 295, y: 492, radius: 13, speed: history.rackUpgrade ? 188 : 168, hitCooldown: 0 },
       cars: trafficTemplate.map((car) => ({ ...car, width: 58, height: 28 })),
       rain: Array.from({ length: 90 }, (_, i) => ({
         x: (i * 83) % W,
@@ -252,7 +255,7 @@
     updateRain(dt);
 
     const secured = game.conesPlaced.length === coneTargets.length;
-    const timeDrain = secured ? 0.018 : 0.034;
+    const timeDrain = (secured ? 0.018 : 0.034) * (history.rackUpgrade ? 0.82 : 1);
     game.scores.service = clamp(game.scores.service - timeDrain * dt * 10, 0, 100);
     if (game.step === "verify") {
       game.flood = clamp(game.flood - 3.5 * dt, 0, 100);
@@ -567,6 +570,7 @@
     const letter = gradeLetter(game.grade);
 
     const outcome = persistentOutcome({ success, rushed: game.rushed, waterValveClosed: game.waterValveClosed, jobType: game.jobType });
+    const economy = shiftEconomy(history, { success, score: game.grade, collisions: game.collisions });
     history.shifts += 1;
     history.downstreamClog = outcome.downstreamClog;
     history.waterOutage = outcome.waterOutage;
@@ -575,6 +579,8 @@
     if (success && game.jobType === "drain") history.drainJobs += 1;
     history.lastResult = outcome.lastResult;
     history.bestGrade = bestGrade(history.bestGrade, letter);
+    history.budget = economy.budget;
+    history.trust = economy.trust;
     saveHistory();
 
     ui.endTitle.textContent = success ? `Service grade: ${letter}` : "Call failed";
@@ -583,7 +589,9 @@
     ui.endStats.innerHTML = [
       ["Safety", Math.round(game.scores.safety)],
       ["Service", Math.round(game.scores.service)],
-      ["Quality", Math.round(game.scores.quality)]
+      ["Quality", Math.round(game.scores.quality)],
+      ["Budget", `${economy.budgetDelta >= 0 ? "+" : ""}$${economy.budgetDelta}`],
+      ["Town trust", `${history.trust}/100`]
     ].map(([label, value]) => `<div>${label}<strong>${value}</strong></div>`).join("");
     ui.endPanel.hidden = false;
     syncUI();
@@ -631,6 +639,9 @@
       <span>Water service <strong>${!game.utilityMarked ? "Unknown" : game.waterValveClosed ? "OFF" : "Marked · ON"}</strong></span>
       <span>Safety / Service / Quality <strong>${Math.round(game.scores.safety)} / ${Math.round(game.scores.service)} / ${Math.round(game.scores.quality)}</strong></span>
       <span>Downstream line <strong>${history.downstreamClog ? "Restricted" : "Clear"}</strong></span>
+      <span>Department budget <strong>$${history.budget}</strong></span>
+      <span>Town trust / Crew rank <strong>${history.trust} / ${1 + Math.floor((history.drainJobs + history.waterJobs) / 3)}</strong></span>
+      <span>Quick-load rack <strong>${history.rackUpgrade ? "Installed" : "Stock"}</strong></span>
       <span>Completed drain / water calls <strong>${history.drainJobs} / ${history.waterJobs}</strong></span>
       <span>Prior shifts <strong>${history.shifts}</strong></span>`;
   }
@@ -1041,6 +1052,32 @@
     } else {
       ui.historyNote.hidden = true;
     }
+    syncUpgradeButton();
+  }
+
+  function syncUpgradeButton() {
+    if (history.rackUpgrade) {
+      ui.upgradeButton.textContent = "Quick-load rack installed · +12% field speed";
+      ui.upgradeButton.disabled = true;
+      return;
+    }
+    const shortfall = Math.max(0, RACK_COST - history.budget);
+    ui.upgradeButton.textContent = shortfall > 0
+      ? `Quick-load rack · need $${shortfall} more`
+      : `Buy quick-load rack · $${RACK_COST}`;
+    ui.upgradeButton.disabled = shortfall > 0;
+  }
+
+  function purchaseRackUpgrade() {
+    if (history.rackUpgrade || history.budget < RACK_COST) return;
+    history.budget -= RACK_COST;
+    history.rackUpgrade = true;
+    history.lastResult = "Quick-load rack installed on Unit 12";
+    saveHistory();
+    game = freshGame();
+    updateHistoryNote();
+    syncUI();
+    cue("complete");
   }
 
   window.addEventListener("keydown", (event) => {
@@ -1058,6 +1095,7 @@
 
   ui.startButton.addEventListener("click", () => startGame("drain"));
   ui.waterButton.addEventListener("click", () => startGame("water"));
+  ui.upgradeButton.addEventListener("click", purchaseRackUpgrade);
   ui.restartButton.addEventListener("click", () => startGame(game.jobType));
   ui.muteButton.addEventListener("click", () => {
     audioMuted = !audioMuted;

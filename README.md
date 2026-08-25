@@ -41,6 +41,8 @@ Choose between two dispatched calls at the same compact intersection:
 
 Both calls include equipment fetching, live traffic, runoff pressure, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, job counts, and persistent civic callbacks.
 
+Successful shifts earn department budget and town trust; incidents and failed calls cost both. Persistent drain/water completions raise crew rank, and the title screen offers a $500 quick-load rack upgrade that improves field movement and reduces time-pressure loss.
+
 ## Canonical repository and deployment policy
 
 - The canonical local checkout is `C:\Dev\public-works-department`.
