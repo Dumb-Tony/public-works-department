@@ -410,6 +410,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-010 | The overall grade is weighted from Safety (40%), Service (35%), and Quality (25%). | Players can understand the tradeoff between traffic control, response time, and durable work. | 2026-08-25 |
 | D-011 | Browser build 0.2.1 uses lightweight synthesized cues and a generated rain bed with a persistent mute setting. | Adds causal audio feedback without introducing licensed assets or a build pipeline; authored effects remain a later replacement. | 2026-08-25 |
 | D-012 | Browser build 0.3 supports touch through an overlaid movement pad and context-action buttons while retaining keyboard controls. | Makes the public playtest directly accessible to phone users without changing the zero-build architecture. | 2026-08-25 |
+| D-013 | The marked water valve is operable after locating; closing it cuts visible service to Maple Diner and persists as a callback if left closed. | Turns buried-utility context into a recoverable, legible civic consequence rather than background decoration. | 2026-08-25 |
 
 ### Open questions
 

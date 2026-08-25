@@ -40,7 +40,8 @@
     drain: { x: 664, y: 404 },
     hydrant: { x: 754, y: 416 },
     inlet: { x: 682, y: 395 },
-    utility: { x: 724, y: 405 }
+    utility: { x: 724, y: 405 },
+    valve: { x: 792, y: 448 }
   };
 
   const trafficTemplate = [
@@ -66,10 +67,11 @@
         shifts: 0,
         bestGrade: "—",
         downstreamClog: false,
+        waterOutage: false,
         lastResult: "No prior work orders"
       };
     } catch {
-      return { shifts: 0, bestGrade: "—", downstreamClog: false, lastResult: "Storage unavailable" };
+      return { shifts: 0, bestGrade: "—", downstreamClog: false, waterOutage: false, lastResult: "Storage unavailable" };
     }
   }
 
@@ -155,8 +157,8 @@
       mode: "title",
       paused: false,
       elapsed: 0,
-      grade: history.downstreamClog ? 92 : 100,
-      gradeReason: history.downstreamClog ? "Yesterday's shortcut made today's runoff worse." : "Call received. The clock is running.",
+      grade: history.downstreamClog || history.waterOutage ? 88 : 100,
+      gradeReason: history.downstreamClog || history.waterOutage ? "Yesterday's callback has reduced today's opening service score." : "Call received. The clock is running.",
       flood: history.downstreamClog ? 34 : 18,
       work: 0,
       locateWork: 0,
@@ -169,6 +171,8 @@
       nearMisses: 0,
       collisions: 0,
       rushed: false,
+      waterValveClosed: false,
+      valveOperations: 0,
       zoneSecured: false,
       toolRetrieved: false,
       repairRestored: false,
@@ -176,7 +180,7 @@
       flowVerified: false,
       scores: {
         safety: 100,
-        service: history.downstreamClog ? 84 : 100,
+        service: clamp(100 - (history.downstreamClog ? 16 : 0) - (history.waterOutage ? 18 : 0), 0, 100),
         quality: 100
       },
       result: null,
@@ -333,6 +337,7 @@
     const atTruck = distance(game.player, { x: 188, y: 474 }) < 94;
     const atDrain = distance(game.player, world.drain) < 52;
     const atUtility = distance(game.player, world.utility) < 56;
+    const atValve = distance(game.player, world.valve) < 46;
     game.prompt = "";
 
     if (game.step === "cones") {
@@ -452,6 +457,24 @@
         game.prompt = "Return to Unit 12 to close the work order";
       }
     }
+
+    if (game.utilityMarked && atValve && game.mode === "playing") {
+      const valveAction = game.waterValveClosed ? "Open" : "Close";
+      game.prompt = `${game.prompt ? `${game.prompt}   |   ` : ""}V · ${valveAction} water valve`;
+      if (justPressed.has("KeyV")) toggleWaterValve();
+    }
+  }
+
+  function toggleWaterValve() {
+    game.waterValveClosed = !game.waterValveClosed;
+    game.valveOperations += 1;
+    if (game.waterValveClosed) {
+      cue("alert");
+      penalize("service", 12, "Wrong valve closed: Maple Diner has lost water service.");
+    } else {
+      cue("verify");
+      game.gradeReason = "Maple Diner water restored. The outage remains on the incident report.";
+    }
   }
 
   function completeRepair(rushed) {
@@ -501,20 +524,27 @@
     game.result = success ? "complete" : "failed";
     game.step = "done";
     ui.restartButton.hidden = true;
+    if (success && game.waterValveClosed) {
+      penalize("service", 18, "Work order closed with an active customer water outage.");
+    }
     cue(success ? "complete" : "fail");
     stopRain();
     const letter = gradeLetter(game.grade);
 
     history.shifts += 1;
     history.downstreamClog = Boolean(success && game.rushed);
+    history.waterOutage = Boolean(success && game.waterValveClosed);
     history.lastResult = success
-      ? (game.rushed ? "Drain open; downstream blockage pending" : "Drain cleared with no callback")
+      ? (game.waterValveClosed
+        ? "Drain open; Maple Diner water outage pending"
+        : game.rushed ? "Drain open; downstream blockage pending" : "Drain cleared with no callback")
       : "Flood response missed";
     if (history.bestGrade === "—" || letter < history.bestGrade) history.bestGrade = letter;
     saveHistory();
 
     ui.endTitle.textContent = success ? `Service grade: ${letter}` : "Call failed";
-    ui.endSummary.textContent = `${summary} Response ${formatTime(game.elapsed)}; ${game.collisions} traffic incident${game.collisions === 1 ? "" : "s"}.` + (game.rushed ? " This callback is saved for the next shift." : "");
+    const callbackSaved = game.rushed || game.waterValveClosed;
+    ui.endSummary.textContent = `${summary} Response ${formatTime(game.elapsed)}; ${game.collisions} traffic incident${game.collisions === 1 ? "" : "s"}.` + (callbackSaved ? " This callback is saved for the next shift." : "");
     ui.endStats.innerHTML = [
       ["Safety", Math.round(game.scores.safety)],
       ["Service", Math.round(game.scores.service)],
@@ -561,7 +591,7 @@
     ui.townState.innerHTML = `
       <span>Runoff level <strong>${Math.round(game.flood)}%</strong></span>
       <span>Traffic <strong>${game.conesPlaced.length >= 2 ? "Slowing" : "Live"}</strong></span>
-      <span>Water service <strong>${game.utilityMarked ? "Marked" : "Unknown"}</strong></span>
+      <span>Water service <strong>${!game.utilityMarked ? "Unknown" : game.waterValveClosed ? "OFF" : "Marked · ON"}</strong></span>
       <span>Safety / Service / Quality <strong>${Math.round(game.scores.safety)} / ${Math.round(game.scores.service)} / ${Math.round(game.scores.quality)}</strong></span>
       <span>Downstream line <strong>${history.downstreamClog ? "Restricted" : "Clear"}</strong></span>
       <span>Prior shifts <strong>${history.shifts}</strong></span>`;
@@ -570,6 +600,7 @@
   function draw() {
     ctx.clearRect(0, 0, W, H);
     drawGround();
+    drawServiceCustomer();
     drawRoads();
     drawFlood();
     drawWorkZone();
@@ -599,6 +630,23 @@
     ctx.rotate(-Math.PI / 2);
     ctx.fillText("BIRCH ST", 0, 0);
     ctx.restore();
+  }
+
+  function drawServiceCustomer() {
+    ctx.fillStyle = "rgba(0,0,0,.25)";
+    ctx.fillRect(791, 71, 148, 92);
+    ctx.fillStyle = game.waterValveClosed ? "#4b3a35" : "#d5c49a";
+    ctx.fillRect(784, 64, 148, 92);
+    ctx.fillStyle = "#b64e3c";
+    ctx.fillRect(774, 52, 168, 22);
+    ctx.fillStyle = "#fff2cf";
+    ctx.font = "900 13px sans-serif";
+    ctx.fillText("MAPLE DINER", 806, 68);
+    ctx.fillStyle = game.waterValveClosed ? "#ff665d" : "#274f57";
+    ctx.fillRect(802, 91, 112, 38);
+    ctx.fillStyle = "#f4f0db";
+    ctx.font = "800 11px sans-serif";
+    ctx.fillText(game.waterValveClosed ? "NO WATER" : "OPEN · WATER ON", 812, 114);
   }
 
   function drawRoads() {
@@ -693,6 +741,18 @@
     ctx.fillStyle = "#d9e1d8";
     ctx.font = "700 10px sans-serif";
     ctx.fillText("WATER", world.hydrant.x - 17, world.hydrant.y + 28);
+
+    ctx.fillStyle = game.waterValveClosed ? "#ff665d" : "#238ebc";
+    ctx.beginPath(); ctx.arc(world.valve.x, world.valve.y, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#e7e0be";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(world.valve.x - 7, world.valve.y); ctx.lineTo(world.valve.x + 7, world.valve.y);
+    ctx.moveTo(world.valve.x, world.valve.y - 7); ctx.lineTo(world.valve.x, world.valve.y + 7);
+    ctx.stroke();
+    ctx.fillStyle = "#d9e1d8";
+    ctx.font = "700 9px sans-serif";
+    ctx.fillText("VALVE", world.valve.x - 15, world.valve.y + 28);
   }
 
   function drawCone(x, y) {
@@ -832,9 +892,12 @@
   }
 
   function updateHistoryNote() {
-    if (history.downstreamClog) {
+    if (history.downstreamClog || history.waterOutage) {
       ui.historyNote.hidden = false;
-      ui.historyNote.textContent = "CALLBACK: Last shift pushed debris downstream. Runoff starts higher today and your opening grade is reduced.";
+      const callbacks = [];
+      if (history.downstreamClog) callbacks.push("debris was pushed into the downstream drain");
+      if (history.waterOutage) callbacks.push("Maple Diner was left without water service");
+      ui.historyNote.textContent = `CALLBACK: Last shift ${callbacks.join(" and ")}. Today's opening service score is reduced.`;
     } else if (history.shifts > 0) {
       ui.historyNote.hidden = false;
       ui.historyNote.textContent = `Town record: ${history.lastResult}. Best recorded grade: ${history.bestGrade}.`;

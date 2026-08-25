@@ -42,9 +42,9 @@
 ### P2 — deepen the same intersection
 
 - [x] Add a buried water service crossing and locator sweep.
-- [ ] Add an interactable labeled valve box and wrong-valve consequence.
+- [x] Add an interactable labeled valve box, visible customer outage, recovery, score penalty, and persistent wrong-valve callback.
 - [ ] Add a second “water bubbling through pavement” dispatch using the same space.
-- [ ] Expand locator clues into a utility map and wrong-valve service outage.
+- [ ] Expand locator clues into a utility-map overlay; wrong-valve service outage is implemented.
 - [ ] Add pedestrian route and accessible detour requirements.
 - [ ] Add movable truck with parking/compartment-access consequences.
 - [x] Add cleanup/reopen phase: verify flow, retrieve cones, and close the order at Unit 12.

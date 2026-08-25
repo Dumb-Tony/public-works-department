@@ -17,6 +17,7 @@ Open `prototype/index.html` in a modern browser. No install, server, or build st
 - Pause: `P`
 - Restart the active shift: use **Restart shift** in the header
 - Touch devices: use the on-screen movement pad and WORK / PLACE / R buttons
+- Operate a marked water valve: `V` or the on-screen **VALVE** button
 
 The prototype saves town consequences and the best service grade in browser storage. Use the two-step **Reset town history** control on the title screen to clear that state without accidental deletion.
 
@@ -28,7 +29,7 @@ The prototype saves town consequences and the best service grade in browser stor
 
 ## Current slice
 
-Respond to a clogged storm drain at a compact intersection. Fetch and place cones, use a utility locator to mark the buried water service, retrieve the drain rake, work around moving traffic, and decide whether to perform a careful repair or rush it. A complete shift now includes flow verification, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, and a persistent callback that affects the next shift.
+Respond to a clogged storm drain at a compact intersection. Fetch and place cones, use a utility locator to mark the buried water service, retrieve the drain rake, work around moving traffic, and decide whether to perform a careful repair or rush it. The adjacent water valve is live: operating the wrong valve visibly cuts service to Maple Diner, harms the Service score, can be restored during the call, and becomes a persistent callback if left closed. A complete shift includes flow verification, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, and persistent civic consequences.
 
 ## Canonical repository and deployment policy
 
