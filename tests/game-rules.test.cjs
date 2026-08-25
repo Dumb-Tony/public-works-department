@@ -50,8 +50,10 @@ test("history migration fills missing callback fields", () => {
     downstreamClog: true,
     waterOutage: false,
     weakClamp: false,
+    failedPatch: false,
     drainJobs: 0,
     waterJobs: 0,
+    potholeJobs: 0,
     budget: 900,
     trust: 50,
     rackUpgrade: false,
@@ -65,6 +67,7 @@ test("persistent outcomes distinguish careful, rushed, and valve-outage results"
     downstreamClog: false,
     waterOutage: false,
     weakClamp: false,
+    failedPatch: false,
     lastResult: "Drain cleared with no callback"
   });
   assert.equal(rules.persistentOutcome({ success: true, rushed: true, waterValveClosed: false }).downstreamClog, true);
@@ -101,4 +104,16 @@ test("failed shifts cost budget and trust without going negative", () => {
   assert.equal(failed.budget, 0);
   assert.equal(failed.trust, 0);
   assert.equal(failed.budgetDelta, -165);
+});
+
+test("rushed pothole work creates a failed-patch callback", () => {
+  const outcome = rules.persistentOutcome({ success: true, rushed: true, waterValveClosed: false, jobType: "pothole" });
+  assert.equal(outcome.failedPatch, true);
+  assert.equal(outcome.downstreamClog, false);
+});
+
+test("shift modifiers are deterministic and job-specific", () => {
+  assert.deepEqual(rules.shiftModifier("drain", 1), rules.shiftModifier("drain", 4));
+  assert.equal(rules.shiftModifier("water", 1).id, "pressure_surge");
+  assert.equal(rules.shiftModifier("pothole", 2).id, "commuter_peak");
 });

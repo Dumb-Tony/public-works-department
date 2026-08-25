@@ -38,10 +38,11 @@ Choose between two dispatched calls at the same compact intersection:
 
 - **Storm drain flooding:** establish traffic control, locate the buried water service, clear or rush-flush the inlet, verify downstream flow, and avoid creating tomorrow’s blockage.
 - **Water main leak:** establish traffic control, locate the break, retrieve a valve key and clamp kit, isolate customer service, fit a permanent or temporary clamp, restore the valve, and pressure-test the repair.
+- **Pothole collapse:** establish traffic control, inspect the failed pavement and shallow utilities, retrieve cold patch and compactor, prepare and compact in lifts or dump-and-go, then verify crown and compaction.
 
-Both calls include equipment fetching, live traffic, runoff pressure, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, job counts, and persistent civic callbacks.
+All calls include equipment fetching, live traffic, escalating site conditions, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, job counts, and persistent civic callbacks. Each shift deterministically rotates through job-specific weather, pressure, pavement, and traffic modifiers.
 
-Successful shifts earn department budget and town trust; incidents and failed calls cost both. Persistent drain/water completions raise crew rank, and the title screen offers a $500 quick-load rack upgrade that improves field movement and reduces time-pressure loss.
+Successful shifts earn department budget and town trust; incidents and failed calls cost both. Persistent drain, water, and road completions raise crew rank, and the title screen offers a $500 quick-load rack upgrade that improves field movement and reduces time-pressure loss.
 
 ## Canonical repository and deployment policy
 

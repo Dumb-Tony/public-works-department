@@ -1,7 +1,7 @@
 # Public Works Department — Build Preparation Package
 
 **Companion to:** `GDD.md`  
-**Current target:** Progression build 0.7 → content/tuning build 0.8
+**Current target:** Three-job variability build 0.8 → tuning/accessibility build 0.9
 **Scope rule:** Do not add a second location before the first call satisfies every P0 acceptance criterion.
 
 ## 1. Prioritized prototype backlog
@@ -45,6 +45,8 @@
 - [x] Add a buried water service crossing and locator sweep.
 - [x] Add an interactable labeled valve box, visible customer outage, recovery, score penalty, and persistent wrong-valve callback.
 - [x] Add a selectable “water bubbling through pavement” dispatch using the same intersection, traffic, locator, valve, clamp, verification, and callback systems.
+- [x] Add a selectable pothole-collapse dispatch with surface inspection, shallow-utility marking, patch/compactor workflow, durable/rushed outcomes, verification, and callbacks.
+- [x] Add deterministic job-specific shift modifiers for rainfall, pressure, road base, traffic, hazard escalation, and service pressure.
 - [ ] Expand locator clues into a utility-map overlay; wrong-valve service outage is implemented.
 - [ ] Add pedestrian route and accessible detour requirements.
 - [ ] Add movable truck with parking/compartment-access consequences.

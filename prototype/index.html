@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#12221f">
   <title>Public Works Department — First Shift</title>
   <meta name="description" content="A tiny systemic public works game: secure the street, clear the drain, and live with tomorrow's consequences.">
-  <link rel="stylesheet" href="styles.css?v=0.7">
+  <link rel="stylesheet" href="styles.css?v=0.8">
 </head>
 <body>
   <main class="game-shell">
@@ -41,12 +41,13 @@
           </div>
         </div>
         <div id="startPanel" class="overlay-card">
-          <p class="stamp">BELLWETHER DISPATCH · TWO OPEN CALLS</p>
+          <p class="stamp">BELLWETHER DISPATCH · THREE OPEN CALLS</p>
           <h2>GRAND &amp; BIRCH NEEDS A CREW</h2>
-          <p>Choose today’s work order. Both calls require traffic control, utility locating, the right truck tool, a durable repair, verification, cleanup, and civic consequences.</p>
+          <p>Choose today’s work order. All calls require traffic control, utility locating, the right truck tool, a durable repair, verification, cleanup, and civic consequences.</p>
           <div id="historyNote" class="history-note" hidden></div>
           <button id="startButton" type="button">14-07 · Storm drain flooding</button>
           <button id="waterButton" type="button">14-08 · Water main leak</button>
+          <button id="potholeButton" type="button">14-09 · Pothole collapse</button>
           <button id="upgradeButton" class="upgrade-button" type="button">Buy quick-load rack · $500</button>
           <button id="resetButton" class="text-button" type="button">Reset town history</button>
         </div>
@@ -82,9 +83,9 @@
       </aside>
     </section>
 
-    <footer>Playable build 0.7 · Persistent budget, trust, rank, and upgrade progression</footer>
+    <footer>Playable build 0.8 · Three jobs · Deterministic shift conditions · Persistent progression</footer>
   </main>
-  <script src="js/game-rules.js?v=0.7"></script>
-  <script src="app.js?v=0.7"></script>
+  <script src="js/game-rules.js?v=0.8"></script>
+  <script src="app.js?v=0.8"></script>
 </body>
 </html>

@@ -52,8 +52,10 @@
       downstreamClog: Boolean(history.downstreamClog),
       waterOutage: Boolean(history.waterOutage),
       weakClamp: Boolean(history.weakClamp),
+      failedPatch: Boolean(history.failedPatch),
       drainJobs: Number.isFinite(history.drainJobs) ? Math.max(0, Math.floor(history.drainJobs)) : 0,
       waterJobs: Number.isFinite(history.waterJobs) ? Math.max(0, Math.floor(history.waterJobs)) : 0,
+      potholeJobs: Number.isFinite(history.potholeJobs) ? Math.max(0, Math.floor(history.potholeJobs)) : 0,
       budget: Number.isFinite(history.budget) ? Math.max(0, Math.round(history.budget)) : 900,
       trust: Number.isFinite(history.trust) ? clamp(Math.round(history.trust), 0, 100) : 50,
       rackUpgrade: Boolean(history.rackUpgrade),
@@ -66,7 +68,7 @@
     return {
       safety: 100,
       service: clamp(100 - (history.downstreamClog ? 16 : 0) - (history.waterOutage ? 18 : 0), 0, 100),
-      quality: history.weakClamp ? 82 : 100
+      quality: history.weakClamp || history.failedPatch ? 82 : 100
     };
   }
 
@@ -80,6 +82,7 @@
         downstreamClog: false,
         waterOutage: false,
         weakClamp: false,
+        failedPatch: false,
         lastResult: "Flood response missed"
       };
     }
@@ -88,7 +91,10 @@
         downstreamClog: Boolean(rushed),
         waterOutage: true,
         weakClamp: jobType === "water" && Boolean(rushed),
-        lastResult: jobType === "water" ? "Water main clamped; Maple Diner outage pending" : "Drain open; Maple Diner water outage pending"
+        failedPatch: jobType === "pothole" && Boolean(rushed),
+        lastResult: jobType === "water"
+          ? "Water main clamped; Maple Diner outage pending"
+          : jobType === "pothole" ? "Road patched; Maple Diner outage pending" : "Drain open; Maple Diner water outage pending"
       };
     }
     if (rushed && jobType === "water") {
@@ -96,7 +102,17 @@
         downstreamClog: false,
         waterOutage: false,
         weakClamp: true,
+        failedPatch: false,
         lastResult: "Water restored; temporary clamp callback pending"
+      };
+    }
+    if (rushed && jobType === "pothole") {
+      return {
+        downstreamClog: false,
+        waterOutage: false,
+        weakClamp: false,
+        failedPatch: true,
+        lastResult: "Road reopened; cold patch callback pending"
       };
     }
     if (rushed) {
@@ -104,6 +120,7 @@
         downstreamClog: true,
         waterOutage: false,
         weakClamp: false,
+        failedPatch: false,
         lastResult: "Drain open; downstream blockage pending"
       };
     }
@@ -111,7 +128,10 @@
       downstreamClog: false,
       waterOutage: false,
       weakClamp: false,
-      lastResult: jobType === "water" ? "Water main clamped and pressure verified" : "Drain cleared with no callback"
+      failedPatch: false,
+      lastResult: jobType === "water"
+        ? "Water main clamped and pressure verified"
+        : jobType === "pothole" ? "Pothole compacted and surface verified" : "Drain cleared with no callback"
     };
   }
 
@@ -137,6 +157,28 @@
     };
   }
 
+  function shiftModifier(jobType, shiftNumber) {
+    const variants = {
+      drain: [
+        { id: "steady_rain", label: "Steady rain", hazardRate: 1, trafficRate: 1, serviceRate: 1 },
+        { id: "cloudburst", label: "Cloudburst", hazardRate: 1.28, trafficRate: .9, serviceRate: 1.12 },
+        { id: "school_release", label: "School release traffic", hazardRate: 1, trafficRate: 1.28, serviceRate: 1.08 }
+      ],
+      water: [
+        { id: "normal_pressure", label: "Normal pressure", hazardRate: 1, trafficRate: 1, serviceRate: 1 },
+        { id: "pressure_surge", label: "Pressure surge", hazardRate: 1.3, trafficRate: 1, serviceRate: 1.1 },
+        { id: "dinner_rush", label: "Dinner rush", hazardRate: 1.05, trafficRate: 1.24, serviceRate: 1.08 }
+      ],
+      pothole: [
+        { id: "dry_base", label: "Dry pavement", hazardRate: 1, trafficRate: 1, serviceRate: 1 },
+        { id: "saturated_base", label: "Saturated road base", hazardRate: 1.25, trafficRate: .95, serviceRate: 1.12 },
+        { id: "commuter_peak", label: "Commuter peak", hazardRate: 1.08, trafficRate: 1.3, serviceRate: 1.1 }
+      ]
+    };
+    const list = variants[jobType] || variants.drain;
+    return { ...list[Math.abs(Math.floor(shiftNumber)) % list.length] };
+  }
+
   return Object.freeze({
     JOB_TRANSITIONS,
     bestGrade,
@@ -149,6 +191,7 @@
     normalizeHistory,
     penalizeScore,
     persistentOutcome,
-    shiftEconomy
+    shiftEconomy,
+    shiftModifier
   });
 });

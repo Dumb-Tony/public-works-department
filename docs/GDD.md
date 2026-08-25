@@ -328,6 +328,8 @@ The same intersection now supports a second selectable water-main dispatch. The 
 
 Build 0.7 adds the first economy/progression loop. Shift grade and traffic incidents determine department payout and incident costs; success quality changes town trust; successful job counts raise crew rank; and a persistent $500 quick-load rack purchase improves movement speed and reduces service-score time loss. This is intentionally one meaningful equipment choice before a broader shop is designed.
 
+Build 0.8 adds a third pothole-collapse dispatch using the shared state grammar: inspect the failure and shallow utilities, retrieve patch and compactor, prepare/fill/compact or rush, verify crown and compaction, then reopen. Rushed work creates a failed-patch callback. Every job now rotates deterministically through three job-specific conditions—such as cloudburst, pressure surge, saturated base, school release, dinner rush, or commuter peak—that alter hazard, traffic, and service-pressure rates while remaining reproducible for testing.
+
 ## 17. Browser technical approach
 
 - Plain HTML/CSS/JavaScript with Canvas 2D; no dependencies, bundler, or build step.
@@ -377,9 +379,9 @@ WorldEvent { id, type, sourceId, targetId, amount, tags[], occurredAt }
 
 ## 20. Milestone summary
 
-- **M0 — Design proof (current):** one browser call, causal traffic/drain systems, grade, saved consequence, living documentation.
-- **M1 — Browser vertical slice:** polish and validate the call, add audio/accessibility options, deterministic QA hooks, and better consequence feedback.
-- **M2 — Systems testbed:** second job on the same intersection, utility valve interaction, job definitions separated from engine, basic generated modifiers.
+- **M0 — Design proof (complete):** one browser call, causal traffic/drain systems, grade, saved consequence, living documentation.
+- **M1 — Browser vertical slice (current):** three replayable calls, audio/accessibility options, deterministic job modifiers, persistent callbacks, and an economy loop; continue tuning and player testing.
+- **M2 — Systems testbed:** move job definitions out of the renderer, add utility-map and pedestrian systems, and deepen generated modifiers.
 - **M3 — Unity graybox:** 3D intersection, one vehicle, tool grammar, solo job parity.
 - **M4 — Two-player network proof:** host/join, shared objects, traffic control + repair coordination, reconnect and outcome persistence.
 - **M5 — Steam demo slice:** one district, 4–6 jobs, shop/shift loop, progression, 2–5 players, performance/accessibility pass.
@@ -421,6 +423,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-014 | Core scoring, persistence, and job transitions live in a dependency-free rules module shared by the browser and Node tests. | Enables reliable multi-job growth without sacrificing direct file opening or adding a build step. | 2026-08-25 |
 | D-015 | Build 0.6 adds a selectable water-main leak call using the same intersection and state grammar but different repair causality. | Proves the architecture can create another meaningful job without duplicating the entire game or adding a second location. | 2026-08-25 |
 | D-016 | Build 0.7 rewards shifts with persistent budget/trust and introduces a purchasable quick-load rack with a field-speed/time-pressure effect. | Establishes a real play→report→upgrade→replay loop without adding grind or multiple speculative currencies. | 2026-08-25 |
+| D-017 | Build 0.8 adds a pothole job and deterministic per-job condition rotation keyed by completed shift count. | Increases content breadth and replayability while keeping failures reproducible and testable. | 2026-08-25 |
 
 ### Open questions
 
