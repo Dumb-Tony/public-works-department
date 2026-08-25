@@ -294,28 +294,33 @@ Rules reject combinations that are unreadable, impossible with the offered loado
 
 ### The call: “Grand & Birch Is Flooding”
 
-One rainy, top-down intersection. Unit 12 is parked on the verge. A blocked curb inlet is flooding an active traffic lane. The player must:
+One rainy, top-down intersection. Unit 12 is parked on the verge. A blocked curb inlet is flooding an active traffic lane beside a buried water service. The player must:
 
 1. walk to the truck and fetch one cone at a time;
 2. place three cones on a marked taper;
 3. observe cars slow and shift around the secured zone;
-4. return for the drain rake;
-5. approach the flooded inlet;
-6. hold the work input to clear it carefully, or use the explicit rush input;
-7. receive a service grade and callback assessment;
-8. refresh/start another shift and see the rushed consequence persist.
+4. return for a utility locator and sweep the marked work area;
+5. identify and visibly mark the buried water-service crossing;
+6. return for the drain rake and approach the flooded inlet;
+7. hold the work input to clear it carefully, or use the explicit rush input;
+8. verify downstream flow after a careful repair;
+9. recover all three cones as live traffic protection shrinks;
+10. return to Unit 12 to close the work order;
+11. receive Safety, Service, Quality, overall grade, and callback results;
+12. refresh/start another shift and see the rushed consequence persist.
 
 ### System promise demonstrated
 
 - Tool/vehicle fetching: Unit 12 functions as inventory and travel anchor.
 - Work-zone safety: cone placement changes traffic and incident likelihood.
-- Infrastructure: rain raises runoff; drain work lowers it; an adjacent labeled water asset foreshadows network overlap.
+- Infrastructure: rain raises runoff; drain work lowers it; a locator sweep reveals the buried water-service crossing before steel tools are used.
 - Time pressure: service grade trends downward and flood level rises.
+- Closeout discipline: repair, verification, equipment recovery, and street reopening are separate steps; skipping verification is visible in the final checklist and quality score.
 - Persistence: rushing clears today’s call but begins the next shift with a restricted downstream line, higher runoff, and lower grade.
 
 ### Explicit non-goals
 
-No multiplayer networking, 3D, free driving, full buried-utility simulation, NPC dialogue, procedural job generation, economy, touch controls, or multiple jobs in prototype 0.1. These are represented in architecture and documentation only where that preparation is cheap.
+No multiplayer networking, 3D, free driving, full utility-network propagation, NPC dialogue, procedural job generation, economy, touch controls, or multiple jobs in playable build 0.2. These are represented in architecture and documentation only where that preparation is cheap.
 
 ## 17. Browser technical approach
 
@@ -401,6 +406,8 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-006 | Bellwether is affectionate, persistent, and suitable for a shared game universe. | Recurring places and people strengthen consequence and identity. | 2026-08-25 |
 | D-007 | The canonical checkout is `C:\Dev\public-works-department`, versioned publicly on GitHub with `main` as the primary branch. | Keeps design, planning, and implementation in one durable source of truth. | 2026-08-25 |
 | D-008 | The standalone prototype is deployed to GitHub Pages from the repository root, with no build step. | Friends need a simple public playtest URL and deployment should remain reproducible. | 2026-08-25 |
+| D-009 | A completed field repair does not immediately end the call; verification, equipment recovery, and return-to-truck closeout are required. | Makes safety and quality procedural rather than an end-screen abstraction. | 2026-08-25 |
+| D-010 | The overall grade is weighted from Safety (40%), Service (35%), and Quality (25%). | Players can understand the tradeoff between traffic control, response time, and durable work. | 2026-08-25 |
 
 ### Open questions
 

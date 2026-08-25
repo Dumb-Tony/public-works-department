@@ -36,7 +36,8 @@
     truck: { x: 110, y: 480, w: 150, h: 72 },
     drain: { x: 664, y: 404 },
     hydrant: { x: 754, y: 416 },
-    inlet: { x: 682, y: 395 }
+    inlet: { x: 682, y: 395 },
+    utility: { x: 724, y: 405 }
   };
 
   const trafficTemplate = [
@@ -76,13 +77,26 @@
       gradeReason: history.downstreamClog ? "Yesterday's shortcut made today's runoff worse." : "Call received. The clock is running.",
       flood: history.downstreamClog ? 34 : 18,
       work: 0,
+      locateWork: 0,
+      verifyWork: 0,
       step: "cones",
       conesPlaced: [],
+      conesCollected: 0,
       coneStock: 4,
       carrying: null,
       nearMisses: 0,
       collisions: 0,
       rushed: false,
+      zoneSecured: false,
+      toolRetrieved: false,
+      repairRestored: false,
+      utilityMarked: false,
+      flowVerified: false,
+      scores: {
+        safety: 100,
+        service: history.downstreamClog ? 84 : 100,
+        quality: 100
+      },
       result: null,
       prompt: "",
       player: { x: 295, y: 492, radius: 13, speed: 168, hitCooldown: 0 },
@@ -121,6 +135,20 @@
     return "#ff665d";
   }
 
+  function recomputeGrade() {
+    game.grade = clamp(
+      game.scores.safety * 0.4 + game.scores.service * 0.35 + game.scores.quality * 0.25,
+      0,
+      100
+    );
+  }
+
+  function penalize(category, amount, reason) {
+    game.scores[category] = clamp(game.scores[category] - amount, 0, 100);
+    game.gradeReason = reason;
+    recomputeGrade();
+  }
+
   function update(dt) {
     if (game.mode !== "playing") return;
     if (game.paused) {
@@ -136,17 +164,27 @@
 
     const secured = game.conesPlaced.length === coneTargets.length;
     const timeDrain = secured ? 0.018 : 0.034;
-    game.grade = clamp(game.grade - timeDrain * dt * 10, 0, 100);
-    game.flood = clamp(game.flood + (game.step === "clear" ? 0.65 : 1.05) * dt, 0, 100);
+    game.scores.service = clamp(game.scores.service - timeDrain * dt * 10, 0, 100);
+    if (game.step === "verify") {
+      game.flood = clamp(game.flood - 3.5 * dt, 0, 100);
+    } else if (game.step === "cleanup" || game.step === "return") {
+      game.flood = clamp(game.flood - (game.rushed ? 2 : 7) * dt, 0, 100);
+    } else {
+      game.flood = clamp(game.flood + (game.step === "clear" ? 0.65 : 1.05) * dt, 0, 100);
+    }
 
     if (game.flood >= 72 && game.step !== "done") {
       game.gradeReason = "Runoff has reached Birch Street storefronts.";
-      game.grade = clamp(game.grade - 1.2 * dt, 0, 100);
+      game.scores.service = clamp(game.scores.service - 1.2 * dt, 0, 100);
     }
 
     handleInteraction(dt);
+    recomputeGrade();
 
-    if (game.grade <= 0 || game.flood >= 100) finish(false, "The intersection flooded before the drain was restored.");
+    const repairRestored = game.step === "verify" || game.step === "cleanup" || game.step === "return";
+    if ((!repairRestored && game.flood >= 100) || game.grade <= 20) {
+      finish(false, "The intersection flooded before the drain was restored.");
+    }
     syncUI();
   }
 
@@ -180,15 +218,13 @@
       const hitY = Math.abs(game.player.y - car.drawY) < car.height * 0.48 + game.player.radius;
       if (hitX && hitY && game.player.hitCooldown <= 0) {
         game.collisions += 1;
-        game.grade = clamp(game.grade - 12, 0, 100);
-        game.gradeReason = "Vehicle contact: work-zone incident reported.";
+        penalize("safety", 22, "Vehicle contact: work-zone incident reported.");
         game.player.hitCooldown = 1.5;
         game.player.y += car.y < 300 ? 42 : -42;
       } else if (hitX && Math.abs(game.player.y - car.drawY) < 46 && game.player.hitCooldown <= 0) {
         game.nearMisses += dt;
         if (game.nearMisses > 1) {
-          game.grade = clamp(game.grade - 3, 0, 100);
-          game.gradeReason = "Near miss: cones need to control approaching traffic.";
+          penalize("safety", 6, "Near miss: cones need to control approaching traffic.");
           game.nearMisses = 0;
           game.player.hitCooldown = 1;
         }
@@ -207,6 +243,7 @@
   function handleInteraction(dt) {
     const atTruck = distance(game.player, { x: 188, y: 474 }) < 94;
     const atDrain = distance(game.player, world.drain) < 52;
+    const atUtility = distance(game.player, world.utility) < 56;
     game.prompt = "";
 
     if (game.step === "cones") {
@@ -223,11 +260,39 @@
       } else {
         game.prompt = "Return to Unit 12 for a traffic cone";
       }
+    } else if (game.step === "locator") {
+      if (atTruck) {
+        game.prompt = "E · Take utility locator";
+        if (justPressed.has("KeyE")) {
+          game.carrying = "locator";
+          game.step = "locate";
+          game.gradeReason = "Locate the blue water service before using a steel rake.";
+        }
+      } else {
+        game.prompt = "Return to Unit 12 for the utility locator";
+      }
+    } else if (game.step === "locate") {
+      if (!atUtility) {
+        game.prompt = "Bring the locator to the pulsing utility mark";
+      } else {
+        game.prompt = "Hold E · Sweep for buried service";
+        if (keys.has("KeyE")) {
+          game.locateWork = clamp(game.locateWork + 34 * dt, 0, 100);
+          game.gradeReason = `Tracing buried water service… ${Math.floor(game.locateWork)}%`;
+          if (game.locateWork >= 100) {
+            game.utilityMarked = true;
+            game.carrying = null;
+            game.step = "tool";
+            game.gradeReason = "Water service marked in blue. Steel tools may stay west of the line.";
+          }
+        }
+      }
     } else if (game.step === "tool") {
       if (atTruck) {
         game.prompt = "E · Take drain rake";
         if (justPressed.has("KeyE")) {
           game.carrying = "rake";
+          game.toolRetrieved = true;
           game.step = "clear";
           game.gradeReason = "Work zone secured. Clear the inlet before it overtops.";
         }
@@ -243,16 +308,74 @@
           game.work = clamp(game.work + 23 * dt, 0, 100);
           game.flood = clamp(game.flood - 5.5 * dt, 0, 100);
           game.gradeReason = `Clearing debris carefully… ${Math.floor(game.work)}%`;
-          if (game.work >= 100) finish(true, "The drain is flowing and the repair should hold through the next storm.");
+          if (game.work >= 100) completeRepair(false);
         }
         if (justPressed.has("KeyR")) {
-          game.rushed = true;
           game.work = 100;
-          game.grade = clamp(game.grade - 8, 0, 100);
-          finish(true, "The inlet is open—but the debris was pushed into the downstream line.");
+          completeRepair(true);
         }
       }
+    } else if (game.step === "verify") {
+      if (!atDrain) {
+        game.prompt = "Return to the inlet and verify downstream flow";
+      } else {
+        game.prompt = "Hold E · Verify flow and rake bars";
+        if (keys.has("KeyE")) {
+          game.verifyWork = clamp(game.verifyWork + 42 * dt, 0, 100);
+          game.flood = clamp(game.flood - 11 * dt, 0, 100);
+          game.gradeReason = `Testing drainage flow… ${Math.floor(game.verifyWork)}%`;
+          if (game.verifyWork >= 100) {
+            game.flowVerified = true;
+            game.carrying = null;
+            game.step = "cleanup";
+            game.gradeReason = "Flow verified. Recover all cones before reopening Grand Avenue.";
+          }
+        }
+      }
+    } else if (game.step === "cleanup") {
+      const nearestCone = nearestPlacedCone();
+      if (nearestCone && nearestCone.d < 52) {
+        game.prompt = "E · Recover traffic cone";
+        if (justPressed.has("KeyE")) {
+          game.conesPlaced = game.conesPlaced.filter((index) => index !== nearestCone.index);
+          game.conesCollected += 1;
+          game.gradeReason = `${game.conesCollected}/3 cones recovered. Traffic protection is shrinking.`;
+          if (game.conesCollected === coneTargets.length) game.step = "return";
+        }
+      } else {
+        game.prompt = "Recover the three flashing traffic cones";
+      }
+    } else if (game.step === "return") {
+      if (atTruck) {
+        game.prompt = "E · Close work order at Unit 12";
+        if (justPressed.has("KeyE")) {
+          finish(true, game.rushed
+            ? "The street reopened, but the unverified rush flush lodged debris downstream."
+            : "The drain is flowing, utilities are intact, and Grand Avenue is safely reopened.");
+        }
+      } else {
+        game.prompt = "Return to Unit 12 to close the work order";
+      }
     }
+  }
+
+  function completeRepair(rushed) {
+    game.rushed = rushed;
+    game.repairRestored = true;
+    game.carrying = null;
+    if (rushed) {
+      penalize("quality", 36, "Rush flush used: debris moved downstream without a flow test.");
+      game.step = "cleanup";
+    } else {
+      game.step = "verify";
+      game.gradeReason = "Blockage removed. Verify flow before reopening the street.";
+    }
+  }
+
+  function nearestPlacedCone() {
+    return game.conesPlaced
+      .map((index) => ({ index, d: distance(game.player, coneTargets[index]) }))
+      .sort((a, b) => a.d - b.d)[0];
   }
 
   function placeCone() {
@@ -265,10 +388,12 @@
       game.conesPlaced.push(nearest.index);
       game.carrying = null;
       game.gradeReason = `Work zone ${game.conesPlaced.length}/3 secured.`;
-      if (game.conesPlaced.length === coneTargets.length) game.step = "tool";
+      if (game.conesPlaced.length === coneTargets.length) {
+        game.zoneSecured = true;
+        game.step = "locator";
+      }
     } else {
-      game.grade = clamp(game.grade - 2, 0, 100);
-      game.gradeReason = "Cone is outside the marked taper. Reposition it.";
+      penalize("safety", 4, "Cone is outside the marked taper. Reposition it.");
     }
   }
 
@@ -288,11 +413,11 @@
     saveHistory();
 
     ui.endTitle.textContent = success ? `Service grade: ${letter}` : "Call failed";
-    ui.endSummary.textContent = summary + (game.rushed ? " This consequence is now saved for the next shift." : "");
+    ui.endSummary.textContent = `${summary} Response ${formatTime(game.elapsed)}; ${game.collisions} traffic incident${game.collisions === 1 ? "" : "s"}.` + (game.rushed ? " This callback is saved for the next shift." : "");
     ui.endStats.innerHTML = [
-      ["Response", formatTime(game.elapsed)],
-      ["Traffic incidents", String(game.collisions)],
-      ["Callback risk", game.rushed ? "HIGH" : "LOW"]
+      ["Safety", Math.round(game.scores.safety)],
+      ["Service", Math.round(game.scores.service)],
+      ["Quality", Math.round(game.scores.quality)]
     ].map(([label, value]) => `<div>${label}<strong>${value}</strong></div>`).join("");
     ui.endPanel.hidden = false;
     syncUI();
@@ -313,20 +438,30 @@
     ui.gradeReason.textContent = game.paused ? "Shift paused." : game.gradeReason;
     ui.objective.textContent = {
       cones: game.carrying === "cone" ? "Place the cone on a striped marker" : "Build a three-cone traffic taper",
+      locator: "Fetch the utility locator from Unit 12",
+      locate: "Mark the buried water service",
       tool: "Fetch the drain rake from Unit 12",
       clear: "Clear the flooded storm drain",
+      verify: "Verify downstream drainage flow",
+      cleanup: "Recover the traffic-control equipment",
+      return: "Return to Unit 12 and close the order",
       done: game.result === "complete" ? "Work order closed" : "Dispatch escalation required"
     }[game.step];
 
     const tasks = [
-      ["Place three traffic cones", game.conesPlaced.length === 3],
-      ["Retrieve drain rake", game.step === "clear" || game.step === "done"],
-      ["Restore drainage", game.result === "complete"]
+      ["Place three traffic cones", game.zoneSecured],
+      ["Locate buried water service", game.utilityMarked],
+      ["Retrieve drain rake", game.toolRetrieved],
+      ["Restore drainage", game.repairRestored],
+      ["Verify flow", game.flowVerified],
+      ["Reopen street", game.result === "complete"]
     ];
     ui.checklist.innerHTML = tasks.map(([label, done]) => `<li class="${done ? "done" : ""}">${label}</li>`).join("");
     ui.townState.innerHTML = `
       <span>Runoff level <strong>${Math.round(game.flood)}%</strong></span>
       <span>Traffic <strong>${game.conesPlaced.length >= 2 ? "Slowing" : "Live"}</strong></span>
+      <span>Water service <strong>${game.utilityMarked ? "Marked" : "Unknown"}</strong></span>
+      <span>Safety / Service / Quality <strong>${Math.round(game.scores.safety)} / ${Math.round(game.scores.service)} / ${Math.round(game.scores.quality)}</strong></span>
       <span>Downstream line <strong>${history.downstreamClog ? "Restricted" : "Clear"}</strong></span>
       <span>Prior shifts <strong>${history.shifts}</strong></span>`;
   }
@@ -404,13 +539,40 @@
   function drawWorkZone() {
     for (let i = 0; i < coneTargets.length; i++) {
       const target = coneTargets[i];
-      if (!game.conesPlaced.includes(i)) {
+      if (!game.conesPlaced.includes(i) && game.step === "cones") {
         ctx.strokeStyle = "rgba(255,210,82,.8)";
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
         ctx.strokeRect(target.x - 12, target.y - 9, 24, 18);
         ctx.setLineDash([]);
-      } else drawCone(target.x, target.y);
+      } else if (game.conesPlaced.includes(i)) {
+        if (game.step === "cleanup") {
+          ctx.strokeStyle = `rgba(255,210,82,${.5 + Math.sin(game.elapsed * 6 + i) * .35})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(target.x, target.y, 20, 0, Math.PI * 2); ctx.stroke();
+        }
+        drawCone(target.x, target.y);
+      }
+    }
+
+    if (game.utilityMarked || game.step === "locate") {
+      ctx.strokeStyle = game.utilityMarked ? "rgba(38,156,220,.9)" : "rgba(38,156,220,.38)";
+      ctx.lineWidth = 4;
+      ctx.setLineDash([12, 8]);
+      ctx.beginPath();
+      ctx.moveTo(world.utility.x, 340);
+      ctx.lineTo(world.utility.x, 480);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#259cdc";
+      ctx.font = "800 10px sans-serif";
+      ctx.fillText("W", world.utility.x - 4, 385);
+    }
+
+    if (game.step === "locate") {
+      ctx.strokeStyle = `rgba(255,210,82,${.55 + Math.sin(game.elapsed * 5) * .35})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(world.utility.x, world.utility.y, 34, 0, Math.PI * 2); ctx.stroke();
     }
 
     ctx.fillStyle = "#161d1d";
@@ -419,7 +581,7 @@
     for (let i = -16; i <= 16; i += 8) {
       ctx.beginPath(); ctx.moveTo(world.drain.x + i, world.drain.y - 6); ctx.lineTo(world.drain.x + i, world.drain.y + 6); ctx.stroke();
     }
-    if (game.step === "clear") {
+    if (game.step === "clear" || game.step === "verify") {
       ctx.strokeStyle = `rgba(255,210,82,${.55 + Math.sin(game.elapsed * 5) * .35})`;
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(world.drain.x, world.drain.y, 32, 0, Math.PI * 2); ctx.stroke();
@@ -499,6 +661,14 @@
       ctx.strokeStyle = "#303938"; ctx.lineWidth = 5;
       ctx.beginPath(); ctx.moveTo(p.x + 18, p.y + 27); ctx.lineTo(p.x + 38, p.y + 19); ctx.stroke();
     }
+    if (game.carrying === "locator") {
+      ctx.fillStyle = "#e8b62e";
+      ctx.fillRect(p.x + 12, p.y - 5, 12, 19);
+      ctx.strokeStyle = "#232b29";
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(p.x + 18, p.y + 13); ctx.lineTo(p.x + 29, p.y + 30); ctx.stroke();
+      ctx.beginPath(); ctx.arc(p.x + 31, p.y + 32, 7, 0, Math.PI * 2); ctx.stroke();
+    }
   }
 
   function drawRain() {
@@ -523,14 +693,19 @@
     ctx.strokeStyle = "#60746c";
     ctx.strokeRect(31, 49, 186, 8);
 
-    if (game.step === "clear" && game.work > 0) {
+    const progress = {
+      locate: ["UTILITY LOCATE", game.locateWork],
+      clear: ["DRAIN CLEARANCE", game.work],
+      verify: ["FLOW VERIFICATION", game.verifyWork]
+    }[game.step];
+    if (progress && progress[1] > 0) {
       ctx.fillStyle = "rgba(12,21,18,.9)";
       ctx.fillRect(W / 2 - 130, H - 70, 260, 42);
       ctx.fillStyle = "#f4f0db";
       ctx.font = "700 11px sans-serif";
-      ctx.fillText("DRAIN CLEARANCE", W / 2 - 115, H - 52);
+      ctx.fillText(progress[0], W / 2 - 115, H - 52);
       ctx.fillStyle = "#71d49b";
-      ctx.fillRect(W / 2 - 115, H - 44, 230 * (game.work / 100), 8);
+      ctx.fillRect(W / 2 - 115, H - 44, 230 * (progress[1] / 100), 8);
     }
 
     if (game.prompt) {

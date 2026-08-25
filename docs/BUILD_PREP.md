@@ -1,7 +1,7 @@
 # Public Works Department — Build Preparation Package
 
 **Companion to:** `GDD.md`  
-**Current target:** Browser vertical slice 0.1 → validated slice 0.2  
+**Current target:** Playable build 0.2 → validated slice 0.3
 **Scope rule:** Do not add a second location before the first call satisfies every P0 acceptance criterion.
 
 ## 1. Prioritized prototype backlog
@@ -18,6 +18,9 @@
 - [x] Explicit rush action trades time for a saved downstream blockage.
 - [x] Live service grade, reason text, runoff level, checklist, and end report.
 - [x] Persistence survives refresh and affects the next shift.
+- [x] Locate and visibly mark a buried water-service crossing before repair.
+- [x] Verify flow, recover equipment, return to the truck, and explicitly close the work order.
+- [x] Report separate Safety, Service, and Quality scores with a weighted overall grade.
 - [ ] Complete a hands-on playtest and tune travel/action times to a 3–6 minute first attempt.
 - [ ] Verify every vertical-slice acceptance criterion below in two browsers.
 
@@ -36,13 +39,14 @@
 
 ### P2 — deepen the same intersection
 
-- [ ] Add a buried water service crossing and a labeled valve box.
+- [x] Add a buried water service crossing and locator sweep.
+- [ ] Add an interactable labeled valve box and wrong-valve consequence.
 - [ ] Add a second “water bubbling through pavement” dispatch using the same space.
-- [ ] Implement utility map/locator clues and a wrong-valve service outage.
+- [ ] Expand locator clues into a utility map and wrong-valve service outage.
 - [ ] Add pedestrian route and accessible detour requirements.
 - [ ] Add movable truck with parking/compartment-access consequences.
-- [ ] Add cleanup/reopen phase: retrieve cones in safe order and verify flow.
-- [ ] Add score breakdown: Safety, Service, Quality, Time.
+- [x] Add cleanup/reopen phase: verify flow, retrieve cones, and close the order at Unit 12.
+- [x] Add Safety, Service, and Quality score breakdown; response time remains in the closeout report.
 - [ ] Add small supply/fleet state carried between shifts.
 
 ### Deferred to Unity investigation
@@ -395,4 +399,3 @@ Take these in order:
 8. **Decide M2 gate:** only after acceptance criteria pass, add the buried water-service/valve call on the same intersection.
 
 Do not begin Unity production before the browser slice has demonstrated that cone placement, diagnosis/repair, grading, and persistence create an understandable story. A short Unity spike for networked carry/placement is valid after M1; content production is not.
-

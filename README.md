@@ -26,7 +26,7 @@ The prototype saves town consequences and the best service grade in browser stor
 
 ## Current slice
 
-Respond to a clogged storm drain at a compact intersection. Fetch and place cones, retrieve the drain rake, work around moving traffic, and decide whether to perform a careful repair or rush it. The choice affects both the current service grade and the next shift shown after refresh.
+Respond to a clogged storm drain at a compact intersection. Fetch and place cones, use a utility locator to mark the buried water service, retrieve the drain rake, work around moving traffic, and decide whether to perform a careful repair or rush it. A complete shift now includes flow verification, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, and a persistent callback that affects the next shift.
 
 ## Canonical repository and deployment policy
 
