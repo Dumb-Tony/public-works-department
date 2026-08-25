@@ -32,6 +32,10 @@ button, kbd { font: inherit; }
 .eyebrow, .panel-label, .stamp { margin: 0 0 5px; color: var(--yellow); font-weight: 800; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
 h1 { margin: 0; font: 900 clamp(30px, 5vw, 58px)/.95 Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; letter-spacing: .02em; text-transform: uppercase; }
 .shift-chip { padding: 10px 14px; border: 1px solid var(--line); background: rgba(22,39,34,.9); color: var(--muted); font-size: 14px; }
+.header-actions { display: flex; align-items: center; gap: 9px; }
+.audio-button { padding: 10px 13px; border: 1px solid var(--line); background: #101d19; color: var(--ink); font-weight: 800; cursor: pointer; }
+.audio-button:hover, .audio-button:focus-visible { border-color: var(--yellow); color: var(--yellow); outline: none; }
+.audio-button[aria-pressed="true"] { color: var(--muted); }
 .rain-dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #7ec8e3; box-shadow: 0 0 10px #7ec8e3; }
 
 .play-area { display: grid; grid-template-columns: minmax(0, 960px) minmax(260px, 1fr); border: 1px solid var(--line); background: var(--paper); box-shadow: 0 24px 80px rgba(0,0,0,.38); }
@@ -81,6 +85,7 @@ footer { padding: 12px 2px; color: #75877f; font-size: 12px; }
 @media (max-width: 560px) {
   .masthead { align-items: start; flex-direction: column; }
   .shift-chip { display: none; }
+  .header-actions { width: 100%; justify-content: space-between; }
   .dispatch-panel { grid-template-columns: 1fr; }
   .controls { display: none; }
   .overlay-card { padding: 20px; }

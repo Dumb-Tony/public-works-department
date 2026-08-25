@@ -408,6 +408,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-008 | The standalone prototype is deployed to GitHub Pages from the repository root, with no build step. | Friends need a simple public playtest URL and deployment should remain reproducible. | 2026-08-25 |
 | D-009 | A completed field repair does not immediately end the call; verification, equipment recovery, and return-to-truck closeout are required. | Makes safety and quality procedural rather than an end-screen abstraction. | 2026-08-25 |
 | D-010 | The overall grade is weighted from Safety (40%), Service (35%), and Quality (25%). | Players can understand the tradeoff between traffic control, response time, and durable work. | 2026-08-25 |
+| D-011 | Browser build 0.2.1 uses lightweight synthesized cues and a generated rain bed with a persistent mute setting. | Adds causal audio feedback without introducing licensed assets or a build pipeline; authored effects remain a later replacement. | 2026-08-25 |
 
 ### Open questions
 

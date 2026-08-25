@@ -9,6 +9,7 @@
     startButton: document.querySelector("#startButton"),
     againButton: document.querySelector("#againButton"),
     resetButton: document.querySelector("#resetButton"),
+    muteButton: document.querySelector("#muteButton"),
     historyNote: document.querySelector("#historyNote"),
     grade: document.querySelector("#grade"),
     gradeMeter: document.querySelector("#gradeMeter"),
@@ -22,6 +23,7 @@
   };
 
   const STORAGE_KEY = "pwd-first-shift-v1";
+  const AUDIO_KEY = "pwd-audio-muted-v1";
   const W = canvas.width;
   const H = canvas.height;
   const keys = new Set();
@@ -50,6 +52,10 @@
   let history = loadHistory();
   let game = freshGame();
   let lastTime = performance.now();
+  let audioMuted = loadMuted();
+  let audioContext = null;
+  let rainSource = null;
+  let rainGain = null;
 
   function loadHistory() {
     try {
@@ -66,6 +72,79 @@
 
   function saveHistory() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(history)); } catch { /* local-only save is optional */ }
+  }
+
+  function loadMuted() {
+    try { return localStorage.getItem(AUDIO_KEY) === "true"; } catch { return false; }
+  }
+
+  function syncMuteButton() {
+    ui.muteButton.textContent = audioMuted ? "Sound off" : "Sound on";
+    ui.muteButton.setAttribute("aria-pressed", String(audioMuted));
+  }
+
+  function ensureAudio() {
+    if (audioMuted) return null;
+    if (!audioContext) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return null;
+      audioContext = new AudioContextClass();
+    }
+    if (audioContext.state === "suspended") audioContext.resume();
+    return audioContext;
+  }
+
+  function startRain() {
+    const audio = ensureAudio();
+    if (!audio || rainSource) return;
+    const buffer = audio.createBuffer(1, audio.sampleRate * 2, audio.sampleRate);
+    const channel = buffer.getChannelData(0);
+    for (let i = 0; i < channel.length; i++) channel[i] = Math.random() * 2 - 1;
+    rainSource = audio.createBufferSource();
+    const filter = audio.createBiquadFilter();
+    rainGain = audio.createGain();
+    rainSource.buffer = buffer;
+    rainSource.loop = true;
+    filter.type = "lowpass";
+    filter.frequency.value = 1300;
+    rainGain.gain.value = 0.025;
+    rainSource.connect(filter).connect(rainGain).connect(audio.destination);
+    rainSource.start();
+  }
+
+  function stopRain() {
+    if (!rainSource) return;
+    try { rainSource.stop(); } catch { /* source may already be stopped */ }
+    rainSource.disconnect();
+    rainSource = null;
+    rainGain = null;
+  }
+
+  function cue(name) {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const cues = {
+      dispatch: [520, 0.12, 0.045],
+      pickup: [330, 0.07, 0.035],
+      place: [680, 0.09, 0.04],
+      locate: [920, 0.18, 0.035],
+      repair: [240, 0.12, 0.045],
+      verify: [760, 0.22, 0.04],
+      alert: [150, 0.18, 0.055],
+      impact: [82, 0.25, 0.08],
+      complete: [610, 0.35, 0.05],
+      fail: [105, 0.42, 0.065]
+    };
+    const [frequency, duration, volume] = cues[name] || cues.pickup;
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+    oscillator.type = name === "impact" || name === "fail" ? "sawtooth" : "triangle";
+    oscillator.frequency.setValueAtTime(frequency, audio.currentTime);
+    gain.gain.setValueAtTime(volume, audio.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
+    oscillator.connect(gain).connect(audio.destination);
+    oscillator.start();
+    oscillator.stop(audio.currentTime + duration);
   }
 
   function freshGame() {
@@ -114,6 +193,8 @@
     game.mode = "playing";
     ui.startPanel.hidden = true;
     ui.endPanel.hidden = true;
+    startRain();
+    cue("dispatch");
     canvas.focus();
     syncUI();
   }
@@ -217,6 +298,7 @@
       const hitX = Math.abs(game.player.x - car.x) < car.width * 0.48 + game.player.radius;
       const hitY = Math.abs(game.player.y - car.drawY) < car.height * 0.48 + game.player.radius;
       if (hitX && hitY && game.player.hitCooldown <= 0) {
+        cue("impact");
         game.collisions += 1;
         penalize("safety", 22, "Vehicle contact: work-zone incident reported.");
         game.player.hitCooldown = 1.5;
@@ -224,6 +306,7 @@
       } else if (hitX && Math.abs(game.player.y - car.drawY) < 46 && game.player.hitCooldown <= 0) {
         game.nearMisses += dt;
         if (game.nearMisses > 1) {
+          cue("alert");
           penalize("safety", 6, "Near miss: cones need to control approaching traffic.");
           game.nearMisses = 0;
           game.player.hitCooldown = 1;
@@ -254,6 +337,7 @@
         game.prompt = "E · Take cone from Unit 12";
         if (justPressed.has("KeyE")) {
           game.carrying = "cone";
+          cue("pickup");
           game.coneStock -= 1;
           game.gradeReason = "Cone loaded. Mark the three striped positions.";
         }
@@ -265,6 +349,7 @@
         game.prompt = "E · Take utility locator";
         if (justPressed.has("KeyE")) {
           game.carrying = "locator";
+          cue("pickup");
           game.step = "locate";
           game.gradeReason = "Locate the blue water service before using a steel rake.";
         }
@@ -280,6 +365,7 @@
           game.locateWork = clamp(game.locateWork + 34 * dt, 0, 100);
           game.gradeReason = `Tracing buried water service… ${Math.floor(game.locateWork)}%`;
           if (game.locateWork >= 100) {
+            cue("locate");
             game.utilityMarked = true;
             game.carrying = null;
             game.step = "tool";
@@ -292,6 +378,7 @@
         game.prompt = "E · Take drain rake";
         if (justPressed.has("KeyE")) {
           game.carrying = "rake";
+          cue("pickup");
           game.toolRetrieved = true;
           game.step = "clear";
           game.gradeReason = "Work zone secured. Clear the inlet before it overtops.";
@@ -325,6 +412,7 @@
           game.flood = clamp(game.flood - 11 * dt, 0, 100);
           game.gradeReason = `Testing drainage flow… ${Math.floor(game.verifyWork)}%`;
           if (game.verifyWork >= 100) {
+            cue("verify");
             game.flowVerified = true;
             game.carrying = null;
             game.step = "cleanup";
@@ -337,6 +425,7 @@
       if (nearestCone && nearestCone.d < 52) {
         game.prompt = "E · Recover traffic cone";
         if (justPressed.has("KeyE")) {
+          cue("pickup");
           game.conesPlaced = game.conesPlaced.filter((index) => index !== nearestCone.index);
           game.conesCollected += 1;
           game.gradeReason = `${game.conesCollected}/3 cones recovered. Traffic protection is shrinking.`;
@@ -364,9 +453,11 @@
     game.repairRestored = true;
     game.carrying = null;
     if (rushed) {
+      cue("alert");
       penalize("quality", 36, "Rush flush used: debris moved downstream without a flow test.");
       game.step = "cleanup";
     } else {
+      cue("repair");
       game.step = "verify";
       game.gradeReason = "Blockage removed. Verify flow before reopening the street.";
     }
@@ -385,6 +476,7 @@
       .sort((a, b) => a.d - b.d)[0];
 
     if (nearest && nearest.d < 52) {
+      cue("place");
       game.conesPlaced.push(nearest.index);
       game.carrying = null;
       game.gradeReason = `Work zone ${game.conesPlaced.length}/3 secured.`;
@@ -402,6 +494,8 @@
     game.mode = "ended";
     game.result = success ? "complete" : "failed";
     game.step = "done";
+    cue(success ? "complete" : "fail");
+    stopRain();
     const letter = gradeLetter(game.grade);
 
     history.shifts += 1;
@@ -747,12 +841,27 @@
     if (controlled.includes(event.code)) event.preventDefault();
     if (!keys.has(event.code)) justPressed.add(event.code);
     keys.add(event.code);
-    if (event.code === "KeyP" && game.mode === "playing") game.paused = !game.paused;
+    if (event.code === "KeyP" && game.mode === "playing") {
+      game.paused = !game.paused;
+      cue("pickup");
+    }
   });
   window.addEventListener("keyup", (event) => keys.delete(event.code));
   window.addEventListener("blur", () => { keys.clear(); if (game.mode === "playing") game.paused = true; });
 
   ui.startButton.addEventListener("click", startGame);
+  ui.muteButton.addEventListener("click", () => {
+    audioMuted = !audioMuted;
+    try { localStorage.setItem(AUDIO_KEY, String(audioMuted)); } catch { /* preference stays in memory */ }
+    if (audioMuted) {
+      stopRain();
+    } else {
+      ensureAudio();
+      if (game.mode === "playing") startRain();
+      cue("pickup");
+    }
+    syncMuteButton();
+  });
   ui.againButton.addEventListener("click", () => {
     updateHistoryNote();
     ui.endPanel.hidden = true;
@@ -778,6 +887,7 @@
   }
 
   updateHistoryNote();
+  syncMuteButton();
   syncUI();
   requestAnimationFrame(frame);
 })();

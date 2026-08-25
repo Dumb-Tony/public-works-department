@@ -27,8 +27,10 @@
 ### P1 — make the proof legible and robust
 
 - [ ] Add an optional short first-run control card and contextual input icons.
-- [ ] Add audio: rain, approaching vehicle, cone placement, rake, drain flow, radio, completion.
-- [ ] Add mute and separate critical-cue captions.
+- [x] Add synthesized prototype audio: rain bed, collision, pickup/place, locate, repair, verification, and completion cues.
+- [ ] Replace/expand prototype cues with authored approaching-vehicle, drain-flow, tool-load, and dispatch-radio audio.
+- [x] Add a persistent mute control.
+- [ ] Add separate critical-cue captions for approaching traffic and infrastructure audio.
 - [ ] Add screen-shake and rain-density toggles; default to OS reduced-motion preference.
 - [ ] Explain the saved downstream consequence with a simple drain-network diagram between shifts.
 - [ ] Split monolithic JavaScript into modules before adding a second job.
