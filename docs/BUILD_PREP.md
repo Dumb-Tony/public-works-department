@@ -35,7 +35,7 @@
 - [ ] Explain the saved downstream consequence with a simple drain-network diagram between shifts.
 - [ ] Split monolithic JavaScript into modules before adding a second job.
 - [ ] Move job parameters into data definitions; support deterministic seed/debug presets.
-- [ ] Add a reset/restart option during play and confirmation for town-history reset.
+- [x] Add an in-shift restart option and two-step confirmation for town-history reset.
 - [ ] Add touch controls only if browser playtesting shows mobile demand.
 - [ ] Add lightweight automated state-transition tests.
 

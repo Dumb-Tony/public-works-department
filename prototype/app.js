@@ -9,6 +9,7 @@
     startButton: document.querySelector("#startButton"),
     againButton: document.querySelector("#againButton"),
     resetButton: document.querySelector("#resetButton"),
+    restartButton: document.querySelector("#restartButton"),
     muteButton: document.querySelector("#muteButton"),
     historyNote: document.querySelector("#historyNote"),
     grade: document.querySelector("#grade"),
@@ -56,6 +57,8 @@
   let audioContext = null;
   let rainSource = null;
   let rainGain = null;
+  let resetArmed = false;
+  let resetTimer = null;
 
   function loadHistory() {
     try {
@@ -191,8 +194,11 @@
   function startGame() {
     game = freshGame();
     game.mode = "playing";
+    keys.clear();
+    justPressed.clear();
     ui.startPanel.hidden = true;
     ui.endPanel.hidden = true;
+    ui.restartButton.hidden = false;
     startRain();
     cue("dispatch");
     canvas.focus();
@@ -494,6 +500,7 @@
     game.mode = "ended";
     game.result = success ? "complete" : "failed";
     game.step = "done";
+    ui.restartButton.hidden = true;
     cue(success ? "complete" : "fail");
     stopRain();
     const letter = gradeLetter(game.grade);
@@ -850,6 +857,7 @@
   window.addEventListener("blur", () => { keys.clear(); if (game.mode === "playing") game.paused = true; });
 
   ui.startButton.addEventListener("click", startGame);
+  ui.restartButton.addEventListener("click", startGame);
   ui.muteButton.addEventListener("click", () => {
     audioMuted = !audioMuted;
     try { localStorage.setItem(AUDIO_KEY, String(audioMuted)); } catch { /* preference stays in memory */ }
@@ -866,10 +874,24 @@
     updateHistoryNote();
     ui.endPanel.hidden = true;
     ui.startPanel.hidden = false;
+    ui.restartButton.hidden = true;
     game = freshGame();
     syncUI();
   });
   ui.resetButton.addEventListener("click", () => {
+    if (!resetArmed) {
+      resetArmed = true;
+      ui.resetButton.textContent = "Click again to erase town history";
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => {
+        resetArmed = false;
+        ui.resetButton.textContent = "Reset town history";
+      }, 4000);
+      return;
+    }
+    clearTimeout(resetTimer);
+    resetArmed = false;
+    ui.resetButton.textContent = "Reset town history";
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* storage may be disabled */ }
     history = loadHistory();
     game = freshGame();
