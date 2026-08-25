@@ -899,6 +899,32 @@
     syncUI();
   });
 
+  document.querySelectorAll(".touch-key").forEach((button) => {
+    const code = button.dataset.key;
+    const release = () => {
+      keys.delete(code);
+      button.classList.remove("is-held");
+    };
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      button.setPointerCapture(event.pointerId);
+      if (code === "KeyP") {
+        if (game.mode === "playing") {
+          game.paused = !game.paused;
+          cue("pickup");
+        }
+        return;
+      }
+      if (!keys.has(code)) justPressed.add(code);
+      keys.add(code);
+      button.classList.add("is-held");
+      canvas.focus();
+    });
+    button.addEventListener("pointerup", release);
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("lostpointercapture", release);
+  });
+
   function frame(now) {
     const dt = Math.min((now - lastTime) / 1000, 0.05);
     lastTime = now;

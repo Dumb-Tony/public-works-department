@@ -16,6 +16,7 @@ Open `prototype/index.html` in a modern browser. No install, server, or build st
 - Rush the repair: `R` (fast, but creates a persistent civic consequence)
 - Pause: `P`
 - Restart the active shift: use **Restart shift** in the header
+- Touch devices: use the on-screen movement pad and WORK / PLACE / R buttons
 
 The prototype saves town consequences and the best service grade in browser storage. Use the two-step **Reset town history** control on the title screen to clear that state without accidental deletion.
 

@@ -25,6 +25,20 @@
     <section class="play-area" aria-label="Game prototype">
       <div class="canvas-wrap">
         <canvas id="game" width="960" height="600" tabindex="0" aria-label="Top-down public works game. Use WASD or arrow keys to move and E to interact."></canvas>
+        <div id="touchControls" class="touch-controls" aria-label="Touch game controls">
+          <div class="touch-dpad" aria-label="Movement controls">
+            <button class="touch-key touch-up" type="button" data-key="KeyW" aria-label="Move up">▲</button>
+            <button class="touch-key touch-left" type="button" data-key="KeyA" aria-label="Move left">◀</button>
+            <button class="touch-key touch-down" type="button" data-key="KeyS" aria-label="Move down">▼</button>
+            <button class="touch-key touch-right" type="button" data-key="KeyD" aria-label="Move right">▶</button>
+          </div>
+          <div class="touch-actions" aria-label="Action controls">
+            <button class="touch-key touch-pause" type="button" data-key="KeyP" aria-label="Pause shift">Ⅱ</button>
+            <button class="touch-key" type="button" data-key="KeyR" aria-label="Rush repair">R</button>
+            <button class="touch-key" type="button" data-key="Space" aria-label="Place cone">PLACE</button>
+            <button class="touch-key touch-primary" type="button" data-key="KeyE" aria-label="Interact or work">WORK</button>
+          </div>
+        </div>
         <div id="startPanel" class="overlay-card">
           <p class="stamp">DISPATCH 14-07</p>
           <h2>GRAND &amp; BIRCH IS FLOODING</h2>
@@ -65,7 +79,7 @@
       </aside>
     </section>
 
-    <footer>Playable build 0.2.2 · Complete-shift closeout · Consequences and preferences are saved on this device</footer>
+    <footer>Playable build 0.3 · Keyboard and touch controls · Consequences and preferences are saved on this device</footer>
   </main>
   <script src="app.js"></script>
 </body>
