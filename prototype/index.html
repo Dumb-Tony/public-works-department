@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#12221f">
   <title>Public Works Department — First Shift</title>
   <meta name="description" content="A tiny systemic public works game: secure the street, clear the drain, and live with tomorrow's consequences.">
-  <link rel="stylesheet" href="styles.css?v=0.8">
+  <link rel="stylesheet" href="styles.css?v=0.9">
 </head>
 <body>
   <main class="game-shell">
@@ -18,7 +18,7 @@
       <div class="header-actions">
         <button id="restartButton" class="audio-button" type="button" hidden>Restart shift</button>
         <button id="muteButton" class="audio-button" type="button" aria-pressed="false">Sound on</button>
-        <div class="shift-chip" aria-label="Current conditions"><span class="rain-dot"></span> Heavy rain · 4:18 PM</div>
+        <div id="shiftChip" class="shift-chip" aria-label="Current conditions"><span class="rain-dot"></span> Three calls waiting · 4:18 PM</div>
       </div>
     </header>
 
@@ -83,9 +83,9 @@
       </aside>
     </section>
 
-    <footer>Playable build 0.8 · Three jobs · Deterministic shift conditions · Persistent progression</footer>
+    <footer>Playable build 0.9 · Choose the risk · Hazard pay · Persistent progression</footer>
   </main>
-  <script src="js/game-rules.js?v=0.8"></script>
-  <script src="app.js?v=0.8"></script>
+  <script src="js/game-rules.js?v=0.9"></script>
+  <script src="app.js?v=0.9"></script>
 </body>
 </html>

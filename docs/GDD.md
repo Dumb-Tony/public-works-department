@@ -330,6 +330,8 @@ Build 0.7 adds the first economy/progression loop. Shift grade and traffic incid
 
 Build 0.8 adds a third pothole-collapse dispatch using the shared state grammar: inspect the failure and shallow utilities, retrieve patch and compactor, prepare/fill/compact or rush, verify crown and compaction, then reopen. Rushed work creates a failed-patch callback. Every job now rotates deterministically through three job-specific conditions—such as cloudburst, pressure surge, saturated base, school release, dinner rush, or commuter peak—that alter hazard, traffic, and service-pressure rates while remaining reproducible for testing.
 
+Build 0.9 turns those conditions into a real dispatch choice. The job board previews the exact condition and hazard-pay rate for every open call. Difficult conditions pay 18–25% more on successful completion, while collision costs remain fixed. This creates a legible risk/reward decision using existing systems instead of a separate difficulty menu.
+
 ## 17. Browser technical approach
 
 - Plain HTML/CSS/JavaScript with Canvas 2D; no dependencies, bundler, or build step.
@@ -424,6 +426,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-015 | Build 0.6 adds a selectable water-main leak call using the same intersection and state grammar but different repair causality. | Proves the architecture can create another meaningful job without duplicating the entire game or adding a second location. | 2026-08-25 |
 | D-016 | Build 0.7 rewards shifts with persistent budget/trust and introduces a purchasable quick-load rack with a field-speed/time-pressure effect. | Establishes a real play→report→upgrade→replay loop without adding grind or multiple speculative currencies. | 2026-08-25 |
 | D-017 | Build 0.8 adds a pothole job and deterministic per-job condition rotation keyed by completed shift count. | Increases content breadth and replayability while keeping failures reproducible and testable. | 2026-08-25 |
+| D-018 | Build 0.9 exposes conditions on the dispatch board and ties them to 0–25% hazard-pay multipliers. | Makes job choice strategically meaningful while preserving legible causality and avoiding an abstract difficulty selector. | 2026-08-25 |
 
 ### Open questions
 

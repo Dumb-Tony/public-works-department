@@ -31,6 +31,7 @@
     resetButton: document.querySelector("#resetButton"),
     restartButton: document.querySelector("#restartButton"),
     muteButton: document.querySelector("#muteButton"),
+    shiftChip: document.querySelector("#shiftChip"),
     historyNote: document.querySelector("#historyNote"),
     grade: document.querySelector("#grade"),
     gradeMeter: document.querySelector("#gradeMeter"),
@@ -46,6 +47,11 @@
   const STORAGE_KEY = "pwd-first-shift-v1";
   const AUDIO_KEY = "pwd-audio-muted-v1";
   const RACK_COST = 500;
+  const JOB_BOARD = {
+    drain: { number: "14-07", name: "Storm drain flooding" },
+    water: { number: "14-08", name: "Water main leak" },
+    pothole: { number: "14-09", name: "Pothole collapse" }
+  };
   const W = canvas.width;
   const H = canvas.height;
   const keys = new Set();
@@ -227,6 +233,7 @@
     ui.startPanel.hidden = true;
     ui.endPanel.hidden = true;
     ui.restartButton.hidden = false;
+    ui.shiftChip.innerHTML = `<span class="rain-dot"></span> ${game.modifier.label} · ${hazardPayLabel(game.modifier)}`;
     startRain();
     cue("dispatch");
     canvas.focus();
@@ -583,7 +590,12 @@
     const letter = gradeLetter(game.grade);
 
     const outcome = persistentOutcome({ success, rushed: game.rushed, waterValveClosed: game.waterValveClosed, jobType: game.jobType });
-    const economy = shiftEconomy(history, { success, score: game.grade, collisions: game.collisions });
+    const economy = shiftEconomy(history, {
+      success,
+      score: game.grade,
+      collisions: game.collisions,
+      rewardMultiplier: game.modifier.rewardMultiplier
+    });
     history.shifts += 1;
     history.downstreamClog = outcome.downstreamClog;
     history.waterOutage = outcome.waterOutage;
@@ -605,6 +617,7 @@
       ["Safety", Math.round(game.scores.safety)],
       ["Service", Math.round(game.scores.service)],
       ["Quality", Math.round(game.scores.quality)],
+      ["Call multiplier", `×${game.modifier.rewardMultiplier.toFixed(2)}`],
       ["Budget", `${economy.budgetDelta >= 0 ? "+" : ""}$${economy.budgetDelta}`],
       ["Town trust", `${history.trust}/100`]
     ].map(([label, value]) => `<div>${label}<strong>${value}</strong></div>`).join("");
@@ -656,6 +669,7 @@
       <span>Safety / Service / Quality <strong>${Math.round(game.scores.safety)} / ${Math.round(game.scores.service)} / ${Math.round(game.scores.quality)}</strong></span>
       <span>Downstream line <strong>${history.downstreamClog ? "Restricted" : "Clear"}</strong></span>
       <span>Shift condition <strong>${game.modifier.label}</strong></span>
+      <span>Hazard pay <strong>${hazardPayLabel(game.modifier)}</strong></span>
       <span>Department budget <strong>$${history.budget}</strong></span>
       <span>Town trust / Crew rank <strong>${history.trust} / ${1 + Math.floor((history.drainJobs + history.waterJobs + history.potholeJobs) / 3)}</strong></span>
       <span>Quick-load rack <strong>${history.rackUpgrade ? "Installed" : "Stock"}</strong></span>
@@ -1099,6 +1113,22 @@
       ui.historyNote.hidden = true;
     }
     syncUpgradeButton();
+    syncDispatchBoard();
+  }
+
+  function hazardPayLabel(modifier) {
+    const bonus = Math.round((modifier.rewardMultiplier - 1) * 100);
+    return bonus > 0 ? `+${bonus}%` : "standard rate";
+  }
+
+  function syncDispatchBoard() {
+    const buttons = { drain: ui.startButton, water: ui.waterButton, pothole: ui.potholeButton };
+    Object.entries(buttons).forEach(([jobType, button]) => {
+      const job = JOB_BOARD[jobType];
+      const modifier = shiftModifier(jobType, history.shifts);
+      button.textContent = `${job.number} · ${job.name} · ${modifier.label} · ${hazardPayLabel(modifier)}`;
+    });
+    ui.shiftChip.innerHTML = '<span class="rain-dot"></span> Three calls waiting · 4:18 PM';
   }
 
   function syncUpgradeButton() {

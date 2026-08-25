@@ -114,6 +114,19 @@ test("rushed pothole work creates a failed-patch callback", () => {
 
 test("shift modifiers are deterministic and job-specific", () => {
   assert.deepEqual(rules.shiftModifier("drain", 1), rules.shiftModifier("drain", 4));
-  assert.equal(rules.shiftModifier("water", 1).id, "pressure_surge");
-  assert.equal(rules.shiftModifier("pothole", 2).id, "commuter_peak");
+  assert.equal(rules.shiftModifier("water", 1).id, "dinner_rush");
+  assert.equal(rules.shiftModifier("pothole", 2).id, "saturated_base");
+  assert.equal(rules.shiftModifier("drain", 0).rewardMultiplier, 1);
+  assert.equal(rules.shiftModifier("water", 0).rewardMultiplier, 1.25);
+  assert.equal(rules.shiftModifier("pothole", 0).rewardMultiplier, 1.2);
+});
+
+test("hazard pay scales successful work without multiplying incident costs", () => {
+  const result = rules.shiftEconomy(
+    { budget: 900, trust: 50 },
+    { success: true, score: 100, collisions: 2, rewardMultiplier: 1.25 }
+  );
+  assert.equal(result.budgetDelta, 185);
+  assert.equal(result.incidentCost, 90);
+  assert.equal(result.budget, 1085);
 });

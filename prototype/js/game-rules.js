@@ -140,9 +140,10 @@
     return candidate < current ? candidate : current;
   }
 
-  function shiftEconomy(historyValue, { success, score, collisions }) {
+  function shiftEconomy(historyValue, { success, score, collisions, rewardMultiplier = 1 }) {
     const history = normalizeHistory(historyValue);
-    const basePayout = success ? Math.max(75, Math.round(220 * clamp(score, 0, 100) / 100)) : -120;
+    const safeMultiplier = clamp(Number(rewardMultiplier) || 1, 1, 1.5);
+    const basePayout = success ? Math.max(75, Math.round(220 * clamp(score, 0, 100) / 100 * safeMultiplier)) : -120;
     const incidentCost = Math.max(0, Math.floor(collisions)) * 45;
     const budgetDelta = basePayout - incidentCost;
     const trustDelta = success
@@ -160,19 +161,19 @@
   function shiftModifier(jobType, shiftNumber) {
     const variants = {
       drain: [
-        { id: "steady_rain", label: "Steady rain", hazardRate: 1, trafficRate: 1, serviceRate: 1 },
-        { id: "cloudburst", label: "Cloudburst", hazardRate: 1.28, trafficRate: .9, serviceRate: 1.12 },
-        { id: "school_release", label: "School release traffic", hazardRate: 1, trafficRate: 1.28, serviceRate: 1.08 }
+        { id: "steady_rain", label: "Steady rain", hazardRate: 1, trafficRate: 1, serviceRate: 1, rewardMultiplier: 1 },
+        { id: "cloudburst", label: "Cloudburst", hazardRate: 1.28, trafficRate: .9, serviceRate: 1.12, rewardMultiplier: 1.25 },
+        { id: "school_release", label: "School release traffic", hazardRate: 1, trafficRate: 1.28, serviceRate: 1.08, rewardMultiplier: 1.18 }
       ],
       water: [
-        { id: "normal_pressure", label: "Normal pressure", hazardRate: 1, trafficRate: 1, serviceRate: 1 },
-        { id: "pressure_surge", label: "Pressure surge", hazardRate: 1.3, trafficRate: 1, serviceRate: 1.1 },
-        { id: "dinner_rush", label: "Dinner rush", hazardRate: 1.05, trafficRate: 1.24, serviceRate: 1.08 }
+        { id: "pressure_surge", label: "Pressure surge", hazardRate: 1.3, trafficRate: 1, serviceRate: 1.1, rewardMultiplier: 1.25 },
+        { id: "dinner_rush", label: "Dinner rush", hazardRate: 1.05, trafficRate: 1.24, serviceRate: 1.08, rewardMultiplier: 1.18 },
+        { id: "normal_pressure", label: "Normal pressure", hazardRate: 1, trafficRate: 1, serviceRate: 1, rewardMultiplier: 1 }
       ],
       pothole: [
-        { id: "dry_base", label: "Dry pavement", hazardRate: 1, trafficRate: 1, serviceRate: 1 },
-        { id: "saturated_base", label: "Saturated road base", hazardRate: 1.25, trafficRate: .95, serviceRate: 1.12 },
-        { id: "commuter_peak", label: "Commuter peak", hazardRate: 1.08, trafficRate: 1.3, serviceRate: 1.1 }
+        { id: "commuter_peak", label: "Commuter peak", hazardRate: 1.08, trafficRate: 1.3, serviceRate: 1.1, rewardMultiplier: 1.2 },
+        { id: "dry_base", label: "Dry pavement", hazardRate: 1, trafficRate: 1, serviceRate: 1, rewardMultiplier: 1 },
+        { id: "saturated_base", label: "Saturated road base", hazardRate: 1.25, trafficRate: .95, serviceRate: 1.12, rewardMultiplier: 1.22 }
       ]
     };
     const list = variants[jobType] || variants.drain;
