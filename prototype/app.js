@@ -606,6 +606,7 @@
     drawWorkZone();
     drawTruck();
     drawTraffic();
+    drawObjectiveMarker();
     drawPlayer();
     drawRain();
     drawHUD();
@@ -762,6 +763,54 @@
     ctx.beginPath(); ctx.moveTo(x, y - 14); ctx.lineTo(x - 8, y + 8); ctx.lineTo(x + 8, y + 8); ctx.closePath(); ctx.fill();
     ctx.fillStyle = "#f4f0db";
     ctx.fillRect(x - 5, y, 10, 4);
+  }
+
+  function currentObjectiveTarget() {
+    if (game.mode !== "playing" || game.step === "done") return null;
+    if (game.step === "cones") {
+      if (!game.carrying) return { x: 188, y: 474, label: "UNIT 12" };
+      const openTarget = coneTargets
+        .map((target, index) => ({ ...target, index, d: distance(game.player, target) }))
+        .filter((target) => !game.conesPlaced.includes(target.index))
+        .sort((a, b) => a.d - b.d)[0];
+      return openTarget ? { x: openTarget.x, y: openTarget.y, label: "CONE MARKER" } : null;
+    }
+    if (["locator", "tool", "return"].includes(game.step)) return { x: 188, y: 474, label: "UNIT 12" };
+    if (game.step === "locate") return { ...world.utility, label: "UTILITY SWEEP" };
+    if (game.step === "clear" || game.step === "verify") return { ...world.drain, label: "STORM INLET" };
+    if (game.step === "cleanup") {
+      const nearest = nearestPlacedCone();
+      return nearest ? { ...coneTargets[nearest.index], label: "RECOVER CONE" } : { x: 188, y: 474, label: "UNIT 12" };
+    }
+    return null;
+  }
+
+  function drawObjectiveMarker() {
+    const target = currentObjectiveTarget();
+    if (!target) return;
+    const targetDistance = distance(game.player, target);
+    const pulse = 22 + Math.sin(game.elapsed * 5) * 4;
+
+    if (targetDistance > 90) {
+      ctx.strokeStyle = "rgba(255,210,82,.28)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 9]);
+      ctx.beginPath();
+      ctx.moveTo(game.player.x, game.player.y);
+      ctx.lineTo(target.x, target.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.strokeStyle = "rgba(255,210,82,.92)";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(target.x, target.y, pulse, 0, Math.PI * 2); ctx.stroke();
+    ctx.font = "800 10px sans-serif";
+    const labelWidth = ctx.measureText(target.label).width + 12;
+    ctx.fillStyle = "rgba(12,21,18,.84)";
+    ctx.fillRect(target.x - labelWidth / 2, target.y - pulse - 21, labelWidth, 16);
+    ctx.fillStyle = "#ffd252";
+    ctx.fillText(target.label, target.x - labelWidth / 2 + 6, target.y - pulse - 9);
   }
 
   function drawTruck() {

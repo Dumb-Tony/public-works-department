@@ -26,6 +26,7 @@
 
 ### P1 — make the proof legible and robust
 
+- [x] Add a pulsing spatial objective beacon and route line for the active truck, tool, utility, repair, or cleanup target.
 - [ ] Add an optional short first-run control card and contextual input icons.
 - [x] Add synthesized prototype audio: rain bed, collision, pickup/place, locate, repair, verification, and completion cues.
 - [ ] Replace/expand prototype cues with authored approaching-vehicle, drain-flow, tool-load, and dispatch-radio audio.
