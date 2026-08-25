@@ -122,7 +122,11 @@
   }
 
   function update(dt) {
-    if (game.mode !== "playing" || game.paused) return;
+    if (game.mode !== "playing") return;
+    if (game.paused) {
+      syncUI();
+      return;
+    }
 
     game.elapsed += dt;
     game.player.hitCooldown = Math.max(0, game.player.hitCooldown - dt);
