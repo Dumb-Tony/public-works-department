@@ -1,7 +1,7 @@
 # Public Works Department — Build Preparation Package
 
 **Companion to:** `GDD.md`  
-**Current target:** Risk/reward dispatch build 0.9 → first-playable release candidate 1.0
+**Current target:** First-playable release candidate 1.0 → hands-on tuning and accessibility patch 1.0.1
 **Scope rule:** Do not add a second location before the first call satisfies every P0 acceptance criterion.
 
 ## 1. Prioritized prototype backlog
@@ -48,6 +48,7 @@
 - [x] Add a selectable pothole-collapse dispatch with surface inspection, shallow-utility marking, patch/compactor workflow, durable/rushed outcomes, verification, and callbacks.
 - [x] Add deterministic job-specific shift modifiers for rainfall, pressure, road base, traffic, hazard escalation, and service pressure.
 - [x] Preview each call's next deterministic condition on dispatch and scale successful payout with visible hazard-pay multipliers.
+- [x] Show a causal Today → Next Shift consequence card on every completed shift report, including clean no-callback outcomes.
 - [ ] Expand locator clues into a utility-map overlay; wrong-valve service outage is implemented.
 - [ ] Add pedestrian route and accessible detour requirements.
 - [ ] Add movable truck with parking/compartment-access consequences.

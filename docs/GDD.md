@@ -332,6 +332,8 @@ Build 0.8 adds a third pothole-collapse dispatch using the shared state grammar:
 
 Build 0.9 turns those conditions into a real dispatch choice. The job board previews the exact condition and hazard-pay rate for every open call. Difficult conditions pay 18–25% more on successful completion, while collision costs remain fixed. This creates a legible risk/reward decision using existing systems instead of a separate difficulty menu.
 
+Build 1.0 RC makes persistence visible at the moment of consequence. Every shift report includes a causal Today → Next Shift card. Careful, verified work visibly leaves the town in service; shortcuts name the exact saved callback—downstream flooding, diner outage, repeat main leak, or reopened pothole—before the player chooses another dispatch.
+
 ## 17. Browser technical approach
 
 - Plain HTML/CSS/JavaScript with Canvas 2D; no dependencies, bundler, or build step.
@@ -427,6 +429,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-016 | Build 0.7 rewards shifts with persistent budget/trust and introduces a purchasable quick-load rack with a field-speed/time-pressure effect. | Establishes a real play→report→upgrade→replay loop without adding grind or multiple speculative currencies. | 2026-08-25 |
 | D-017 | Build 0.8 adds a pothole job and deterministic per-job condition rotation keyed by completed shift count. | Increases content breadth and replayability while keeping failures reproducible and testable. | 2026-08-25 |
 | D-018 | Build 0.9 exposes conditions on the dispatch board and ties them to 0–25% hazard-pay multipliers. | Makes job choice strategically meaningful while preserving legible causality and avoiding an abstract difficulty selector. | 2026-08-25 |
+| D-019 | Build 1.0 RC presents each completed job as an explicit Today → Next Shift causal chain. | The game's signature persistent civic consequence must be understood without reading a long summary or remembering hidden state. | 2026-08-25 |
 
 ### Open questions
 

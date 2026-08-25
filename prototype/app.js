@@ -6,6 +6,7 @@
   const {
     bestGrade,
     clamp,
+    consequenceReport,
     computeOverallScore,
     createInitialScores,
     gradeColor,
@@ -41,7 +42,8 @@
     townState: document.querySelector("#townState"),
     endTitle: document.querySelector("#endTitle"),
     endSummary: document.querySelector("#endSummary"),
-    endStats: document.querySelector("#endStats")
+    endStats: document.querySelector("#endStats"),
+    endConsequence: document.querySelector("#endConsequence")
   };
 
   const STORAGE_KEY = "pwd-first-shift-v1";
@@ -612,7 +614,12 @@
 
     ui.endTitle.textContent = success ? `Service grade: ${letter}` : "Call failed";
     const callbackSaved = outcome.downstreamClog || outcome.waterOutage || outcome.weakClamp || outcome.failedPatch;
+    const consequence = consequenceReport(outcome);
     ui.endSummary.textContent = `${summary} Response ${formatTime(game.elapsed)}; ${game.collisions} traffic incident${game.collisions === 1 ? "" : "s"}.` + (callbackSaved ? " This callback is saved for the next shift." : "");
+    ui.endConsequence.classList.toggle("callback", consequence.callback);
+    ui.endConsequence.innerHTML = `
+      <p>${consequence.title}</p>
+      <div><span><small>TODAY</small>${consequence.cause}</span><b aria-hidden="true">→</b><span><small>NEXT SHIFT</small>${consequence.effect}</span></div>`;
     ui.endStats.innerHTML = [
       ["Safety", Math.round(game.scores.safety)],
       ["Service", Math.round(game.scores.service)],

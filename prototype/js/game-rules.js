@@ -135,6 +135,29 @@
     };
   }
 
+  function consequenceReport(outcomeValue) {
+    const outcome = outcomeValue && typeof outcomeValue === "object" ? outcomeValue : {};
+    const callbacks = [];
+    if (outcome.downstreamClog) callbacks.push({ cause: "Rushed drain flush", effect: "Downstream flooding" });
+    if (outcome.waterOutage) callbacks.push({ cause: "Valve left closed", effect: "Maple Diner outage" });
+    if (outcome.weakClamp) callbacks.push({ cause: "Temporary clamp", effect: "Water-main callback" });
+    if (outcome.failedPatch) callbacks.push({ cause: "Dump-and-go patch", effect: "Pothole reopens" });
+    if (callbacks.length === 0) {
+      return {
+        callback: false,
+        title: "NO CALLBACK CREATED",
+        cause: "Repair verified",
+        effect: "Town stays in service"
+      };
+    }
+    return {
+      callback: true,
+      title: callbacks.length > 1 ? `${callbacks.length} CALLBACKS DISPATCHED` : "CALLBACK DISPATCHED",
+      cause: callbacks.map((item) => item.cause).join(" + "),
+      effect: callbacks.map((item) => item.effect).join(" + ")
+    };
+  }
+
   function bestGrade(current, candidate) {
     if (current === "—") return candidate;
     return candidate < current ? candidate : current;
@@ -184,6 +207,7 @@
     JOB_TRANSITIONS,
     bestGrade,
     clamp,
+    consequenceReport,
     computeOverallScore,
     createInitialScores,
     gradeColor,

@@ -130,3 +130,18 @@ test("hazard pay scales successful work without multiplying incident costs", () 
   assert.equal(result.incidentCost, 90);
   assert.equal(result.budget, 1085);
 });
+
+test("consequence report explains the causal chain saved for tomorrow", () => {
+  assert.deepEqual(rules.consequenceReport({ failedPatch: true }), {
+    callback: true,
+    title: "CALLBACK DISPATCHED",
+    cause: "Dump-and-go patch",
+    effect: "Pothole reopens"
+  });
+  assert.deepEqual(rules.consequenceReport({}), {
+    callback: false,
+    title: "NO CALLBACK CREATED",
+    cause: "Repair verified",
+    effect: "Town stays in service"
+  });
+});

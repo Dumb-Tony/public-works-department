@@ -42,6 +42,8 @@ Choose between two dispatched calls at the same compact intersection:
 
 All calls include equipment fetching, live traffic, escalating site conditions, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, job counts, and persistent civic callbacks. Each shift deterministically rotates through job-specific weather, pressure, pavement, and traffic modifiers. Dispatch previews the risks before you choose; harder conditions award up to 25% hazard pay, but traffic incident costs are never discounted.
 
+The shift report closes the causal loop with a visible **Today → Next Shift** consequence card. A verified repair shows the town remaining in service; rushed work names the exact callback it saves into the next shift.
+
 Successful shifts earn department budget and town trust; incidents and failed calls cost both. Persistent drain, water, and road completions raise crew rank, and the title screen offers a $500 quick-load rack upgrade that improves field movement and reduces time-pressure loss.
 
 ## Canonical repository and deployment policy
