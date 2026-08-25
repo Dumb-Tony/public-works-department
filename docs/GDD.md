@@ -328,6 +328,7 @@ No multiplayer networking, 3D, free driving, full utility-network propagation, N
 - Fixed 960×600 simulation coordinates, CSS-scaled responsively.
 - `requestAnimationFrame` loop with delta-time cap.
 - Data-oriented runtime objects for player, traffic, rain, job state, and town history.
+- Browser/Node-compatible `js/game-rules.js` owns job transitions, scoring, history normalization, and persistent outcomes; Node's built-in test runner validates it with no dependencies.
 - Browser `localStorage` for a deliberately tiny versioned persistence record.
 - DOM side panel for accessible, readable work order and state; Canvas for spatial play.
 - Prototype source currently lives in `prototype/index.html`, `prototype/styles.css`, and `prototype/app.js`.
@@ -411,6 +412,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-011 | Browser build 0.2.1 uses lightweight synthesized cues and a generated rain bed with a persistent mute setting. | Adds causal audio feedback without introducing licensed assets or a build pipeline; authored effects remain a later replacement. | 2026-08-25 |
 | D-012 | Browser build 0.3 supports touch through an overlaid movement pad and context-action buttons while retaining keyboard controls. | Makes the public playtest directly accessible to phone users without changing the zero-build architecture. | 2026-08-25 |
 | D-013 | The marked water valve is operable after locating; closing it cuts visible service to Maple Diner and persists as a callback if left closed. | Turns buried-utility context into a recoverable, legible civic consequence rather than background decoration. | 2026-08-25 |
+| D-014 | Core scoring, persistence, and job transitions live in a dependency-free rules module shared by the browser and Node tests. | Enables reliable multi-job growth without sacrificing direct file opening or adding a build step. | 2026-08-25 |
 
 ### Open questions
 

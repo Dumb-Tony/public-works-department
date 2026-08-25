@@ -26,6 +26,11 @@ The prototype saves town consequences and the best service grade in browser stor
 - `docs/GDD.md` — living game design document and decision log
 - `docs/BUILD_PREP.md` — prioritized backlog, milestones, acceptance criteria, state machines, QA, and next tasks
 - `prototype/` — dependency-free Canvas prototype
+- `tests/` — automated scoring, persistence, and work-order state tests
+
+## Validate the rules
+
+Run `npm test` from the project root. There are no runtime dependencies and the playable build still opens directly without a build step.
 
 ## Current slice
 

@@ -34,11 +34,11 @@
 - [ ] Add separate critical-cue captions for approaching traffic and infrastructure audio.
 - [ ] Add screen-shake and rain-density toggles; default to OS reduced-motion preference.
 - [ ] Explain the saved downstream consequence with a simple drain-network diagram between shifts.
-- [ ] Split monolithic JavaScript into modules before adding a second job.
+- [x] Extract scoring, persistence, and work-order transitions into a browser/Node-compatible rules module; renderer and simulation split remains.
 - [ ] Move job parameters into data definitions; support deterministic seed/debug presets.
 - [x] Add an in-shift restart option and two-step confirmation for town-history reset.
 - [x] Add responsive on-screen movement, work, placement, rush, and pause controls for touch devices.
-- [ ] Add lightweight automated state-transition tests.
+- [x] Add automated tests for careful/rushed paths, invalid transitions, weighted scoring, score clamping, history migration, callbacks, and best-grade persistence.
 
 ### P2 — deepen the same intersection
 

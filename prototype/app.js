@@ -1,6 +1,21 @@
 (() => {
   "use strict";
 
+  const rules = window.PublicWorksRules;
+  if (!rules) throw new Error("Public Works rules module failed to load.");
+  const {
+    bestGrade,
+    clamp,
+    computeOverallScore,
+    createInitialScores,
+    gradeColor,
+    gradeLetter,
+    nextJobStep,
+    normalizeHistory,
+    penalizeScore,
+    persistentOutcome
+  } = rules;
+
   const canvas = document.querySelector("#game");
   const ctx = canvas.getContext("2d");
   const ui = {
@@ -63,15 +78,9 @@
 
   function loadHistory() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-        shifts: 0,
-        bestGrade: "—",
-        downstreamClog: false,
-        waterOutage: false,
-        lastResult: "No prior work orders"
-      };
+      return normalizeHistory(JSON.parse(localStorage.getItem(STORAGE_KEY)));
     } catch {
-      return { shifts: 0, bestGrade: "—", downstreamClog: false, waterOutage: false, lastResult: "Storage unavailable" };
+      return normalizeHistory({ lastResult: "Storage unavailable" });
     }
   }
 
@@ -153,11 +162,12 @@
   }
 
   function freshGame() {
+    const scores = createInitialScores(history);
     return {
       mode: "title",
       paused: false,
       elapsed: 0,
-      grade: history.downstreamClog || history.waterOutage ? 88 : 100,
+      grade: computeOverallScore(scores),
       gradeReason: history.downstreamClog || history.waterOutage ? "Yesterday's callback has reduced today's opening service score." : "Call received. The clock is running.",
       flood: history.downstreamClog ? 34 : 18,
       work: 0,
@@ -178,11 +188,7 @@
       repairRestored: false,
       utilityMarked: false,
       flowVerified: false,
-      scores: {
-        safety: 100,
-        service: clamp(100 - (history.downstreamClog ? 16 : 0) - (history.waterOutage ? 18 : 0), 0, 100),
-        quality: 100
-      },
+      scores,
       result: null,
       prompt: "",
       player: { x: 295, y: 492, radius: 13, speed: 168, hitCooldown: 0 },
@@ -210,34 +216,21 @@
   }
 
   function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
-  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
-
-  function gradeLetter(score) {
-    if (score >= 90) return "A";
-    if (score >= 80) return "B";
-    if (score >= 68) return "C";
-    if (score >= 55) return "D";
-    return "F";
-  }
-
-  function gradeColor(score) {
-    if (score >= 80) return "#71d49b";
-    if (score >= 60) return "#ffd252";
-    return "#ff665d";
-  }
-
   function recomputeGrade() {
-    game.grade = clamp(
-      game.scores.safety * 0.4 + game.scores.service * 0.35 + game.scores.quality * 0.25,
-      0,
-      100
-    );
+    game.grade = computeOverallScore(game.scores);
   }
 
   function penalize(category, amount, reason) {
-    game.scores[category] = clamp(game.scores[category] - amount, 0, 100);
+    game.scores = penalizeScore(game.scores, category, amount);
     game.gradeReason = reason;
     recomputeGrade();
+  }
+
+  function advanceJob(event) {
+    const next = nextJobStep(game.step, event);
+    if (next === game.step) return false;
+    game.step = next;
+    return true;
   }
 
   function update(dt) {
@@ -361,7 +354,7 @@
         if (justPressed.has("KeyE")) {
           game.carrying = "locator";
           cue("pickup");
-          game.step = "locate";
+          advanceJob("locator_taken");
           game.gradeReason = "Locate the blue water service before using a steel rake.";
         }
       } else {
@@ -379,7 +372,7 @@
             cue("locate");
             game.utilityMarked = true;
             game.carrying = null;
-            game.step = "tool";
+            advanceJob("utility_marked");
             game.gradeReason = "Water service marked in blue. Steel tools may stay west of the line.";
           }
         }
@@ -391,7 +384,7 @@
           game.carrying = "rake";
           cue("pickup");
           game.toolRetrieved = true;
-          game.step = "clear";
+          advanceJob("tool_taken");
           game.gradeReason = "Work zone secured. Clear the inlet before it overtops.";
         }
       } else {
@@ -426,7 +419,7 @@
             cue("verify");
             game.flowVerified = true;
             game.carrying = null;
-            game.step = "cleanup";
+            advanceJob("flow_verified");
             game.gradeReason = "Flow verified. Recover all cones before reopening Grand Avenue.";
           }
         }
@@ -440,7 +433,7 @@
           game.conesPlaced = game.conesPlaced.filter((index) => index !== nearestCone.index);
           game.conesCollected += 1;
           game.gradeReason = `${game.conesCollected}/3 cones recovered. Traffic protection is shrinking.`;
-          if (game.conesCollected === coneTargets.length) game.step = "return";
+          if (game.conesCollected === coneTargets.length) advanceJob("cleanup_complete");
         }
       } else {
         game.prompt = "Recover the three flashing traffic cones";
@@ -484,10 +477,10 @@
     if (rushed) {
       cue("alert");
       penalize("quality", 36, "Rush flush used: debris moved downstream without a flow test.");
-      game.step = "cleanup";
+      advanceJob("repair_rushed");
     } else {
       cue("repair");
-      game.step = "verify";
+      advanceJob("repair_careful");
       game.gradeReason = "Blockage removed. Verify flow before reopening the street.";
     }
   }
@@ -511,7 +504,7 @@
       game.gradeReason = `Work zone ${game.conesPlaced.length}/3 secured.`;
       if (game.conesPlaced.length === coneTargets.length) {
         game.zoneSecured = true;
-        game.step = "locator";
+        advanceJob("zone_secured");
       }
     } else {
       penalize("safety", 4, "Cone is outside the marked taper. Reposition it.");
@@ -522,7 +515,7 @@
     if (game.mode !== "playing") return;
     game.mode = "ended";
     game.result = success ? "complete" : "failed";
-    game.step = "done";
+    if (!success || !advanceJob("order_closed")) game.step = "done";
     ui.restartButton.hidden = true;
     if (success && game.waterValveClosed) {
       penalize("service", 18, "Work order closed with an active customer water outage.");
@@ -531,15 +524,12 @@
     stopRain();
     const letter = gradeLetter(game.grade);
 
+    const outcome = persistentOutcome({ success, rushed: game.rushed, waterValveClosed: game.waterValveClosed });
     history.shifts += 1;
-    history.downstreamClog = Boolean(success && game.rushed);
-    history.waterOutage = Boolean(success && game.waterValveClosed);
-    history.lastResult = success
-      ? (game.waterValveClosed
-        ? "Drain open; Maple Diner water outage pending"
-        : game.rushed ? "Drain open; downstream blockage pending" : "Drain cleared with no callback")
-      : "Flood response missed";
-    if (history.bestGrade === "—" || letter < history.bestGrade) history.bestGrade = letter;
+    history.downstreamClog = outcome.downstreamClog;
+    history.waterOutage = outcome.waterOutage;
+    history.lastResult = outcome.lastResult;
+    history.bestGrade = bestGrade(history.bestGrade, letter);
     saveHistory();
 
     ui.endTitle.textContent = success ? `Service grade: ${letter}` : "Call failed";
