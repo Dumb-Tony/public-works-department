@@ -340,6 +340,8 @@ Build 1.1 is the first full aesthetic pass. It replaces flat placeholder geometr
 
 Build 1.2 corrects the traffic-control proof. Cone placement is sequential and job-specific rather than three interchangeable points. A complete taper creates a deterministic merge spline for the affected lane: vehicles decelerate on approach, divert fully around the signed work area, and merge back after it. Diverted vehicles cannot collide with a crew member who remains inside that protected area; exposure outside the taper still produces normal near misses and incidents.
 
+Build 1.3 makes every deployed cone authoritative immediately rather than waiting for taper completion. The first cone activates the affected lane's avoidance spline, preventing visual or physical cone overlap throughout setup. Cone coordinates now live beside routing rules in the tested rules module. A query-driven traffic QA scene runs the real renderer and update loop with a stationary crew member inside a completed taper and reports passes, collisions, safety, and minimum clearances without allowing test code to mutate play state.
+
 ## 17. Browser technical approach
 
 - Plain HTML/CSS/JavaScript with Canvas 2D; no dependencies, bundler, or build step.
@@ -438,6 +440,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-019 | Build 1.0 RC presents each completed job as an explicit Today → Next Shift causal chain. | The game's signature persistent civic consequence must be understood without reading a long summary or remembering hidden state. | 2026-08-25 |
 | D-020 | Build 1.1 adopts a rain-soaked, chunky municipal diorama and dispatch-console presentation using procedural Canvas art. | Delivers a cohesive game identity immediately while keeping the prototype dependency-free and preserving migration-friendly gameplay rules. | 2026-08-27 |
 | D-021 | Build 1.2 gives every job a sequential lane-specific cone taper and deterministic traffic diversion path. | Traffic control must change vehicle behavior and create a genuinely protected workplace, or the game's core municipal-work fantasy is dishonest. | 2026-08-27 |
+| D-022 | Build 1.3 activates avoidance on the first cone and adds a deterministic live traffic QA scene with read-only telemetry. | The work-zone promise must hold during setup and be verifiable in the actual running game, not only in isolated rule tests. | 2026-08-27 |
 
 ### Open questions
 

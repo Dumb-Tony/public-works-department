@@ -160,9 +160,27 @@ test("a secured lower-lane taper smoothly diverts traffic around drain work", ()
 });
 
 test("pothole taper diverts the upper lane and protects only the signed work area", () => {
-  assert.equal(rules.trafficRoute("pothole", { x: 650, y: 267 }, true).drawY, 232);
+  assert.equal(rules.trafficRoute("pothole", { x: 650, y: 267 }, true).drawY, 222);
   assert.equal(rules.trafficRoute("pothole", { x: 650, y: 330 }, true).drawY, 330);
   assert.equal(rules.isCrewProtected("pothole", { x: 690, y: 275 }, true), true);
   assert.equal(rules.isCrewProtected("pothole", { x: 480, y: 275 }, true), false);
   assert.equal(rules.isCrewProtected("drain", { x: 664, y: 404 }, false), false);
+});
+
+test("routed cars physically clear every cone in both lane-specific tapers", () => {
+  for (const jobType of ["drain", "water", "pothole"]) {
+    const baseY = jobType === "pothole" ? 267 : 330;
+    for (const cone of rules.coneLayout(jobType)) {
+      const car = rules.trafficRoute(jobType, { x: cone.x, y: baseY }, true);
+      assert.ok(Math.abs(car.drawY - cone.y) >= 30, `${jobType} car overlaps cone at ${cone.x}`);
+      assert.equal(car.diverted, true);
+    }
+  }
+});
+
+test("one deployed cone is enough to activate avoidance routing", () => {
+  const withCone = rules.trafficRoute("drain", { x: 700, y: 330 }, true);
+  const withoutCone = rules.trafficRoute("drain", { x: 700, y: 330 }, false);
+  assert.equal(withCone.drawY, 294);
+  assert.equal(withoutCone.drawY, 330);
 });

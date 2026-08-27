@@ -6,6 +6,7 @@
   const {
     bestGrade,
     clamp,
+    coneLayout,
     consequenceReport,
     computeOverallScore,
     createInitialScores,
@@ -51,6 +52,8 @@
   const STORAGE_KEY = "pwd-first-shift-v1";
   const AUDIO_KEY = "pwd-audio-muted-v1";
   const RACK_COST = 500;
+  const qaTrafficJob = new URLSearchParams(window.location.search).get("qaTraffic");
+  const qaConeCount = clamp(Number(new URLSearchParams(window.location.search).get("qaCones")) || 3, 1, 3);
   const JOB_BOARD = {
     drain: { number: "14-07", name: "Storm drain flooding" },
     water: { number: "14-08", name: "Water main leak" },
@@ -60,26 +63,8 @@
   const H = canvas.height;
   const keys = new Set();
   const justPressed = new Set();
-  const coneLayouts = {
-    drain: [
-      { x: 700, y: 332 },
-      { x: 655, y: 344 },
-      { x: 610, y: 356 }
-    ],
-    water: [
-      { x: 700, y: 332 },
-      { x: 655, y: 344 },
-      { x: 610, y: 356 }
-    ],
-    pothole: [
-      { x: 590, y: 246 },
-      { x: 640, y: 257 },
-      { x: 690, y: 268 }
-    ]
-  };
-
   function activeConeTargets() {
-    return coneLayouts[game?.jobType] || coneLayouts.drain;
+    return coneLayout(game?.jobType || "drain");
   }
 
   const world = {
@@ -224,6 +209,9 @@
       carrying: null,
       nearMisses: 0,
       collisions: 0,
+      trafficPasses: 0,
+      minConeClearance: Infinity,
+      minCrewClearance: Infinity,
       rushed: false,
       waterValveClosed: false,
       valveOperations: 0,
@@ -236,7 +224,7 @@
       result: null,
       prompt: "",
       player: { x: 295, y: 492, radius: 13, speed: history.rackUpgrade ? 188 : 168, hitCooldown: 0 },
-      cars: trafficTemplate.map((car) => ({ ...car, width: 58, height: 28 })),
+      cars: trafficTemplate.map((car) => ({ ...car, width: 58, height: 28, wasDiverted: false })),
       rain: Array.from({ length: 90 }, (_, i) => ({
         x: (i * 83) % W,
         y: (i * 47) % H,
@@ -336,13 +324,23 @@
   }
 
   function updateTraffic(dt) {
-    const protectedZone = game.zoneSecured && game.conesPlaced.length === activeConeTargets().length;
+    const coneTargets = activeConeTargets();
+    const taperActive = game.conesPlaced.length > 0;
+    const protectedZone = game.zoneSecured && game.conesPlaced.length === coneTargets.length;
     const crewProtected = isCrewProtected(game.jobType, game.player, protectedZone);
     for (const car of game.cars) {
-      const route = trafficRoute(game.jobType, car, protectedZone);
+      const route = trafficRoute(game.jobType, car, taperActive);
+      if (route.diverted && !car.wasDiverted) game.trafficPasses += 1;
+      car.wasDiverted = route.diverted;
       const speed = car.speed * game.modifier.trafficRate * route.speedMultiplier;
       car.x += car.dir * speed * dt;
-      car.drawY = trafficRoute(game.jobType, car, protectedZone).drawY;
+      car.drawY = trafficRoute(game.jobType, car, taperActive).drawY;
+      if (route.diverted) {
+        game.minCrewClearance = Math.min(game.minCrewClearance, distance({ x: car.x, y: car.drawY }, game.player));
+        for (const index of game.conesPlaced) {
+          game.minConeClearance = Math.min(game.minConeClearance, distance({ x: car.x, y: car.drawY }, coneTargets[index]));
+        }
+      }
       if (car.dir > 0 && car.x > W + 90) car.x = -90;
       if (car.dir < 0 && car.x < -90) car.x = W + 90;
 
@@ -692,7 +690,7 @@
     ui.checklist.innerHTML = tasks.map(([label, done]) => `<li class="${done ? "done" : ""}">${label}</li>`).join("");
     ui.townState.innerHTML = `
       <span>Runoff level <strong>${Math.round(game.flood)}%</strong></span>
-      <span>Traffic <strong>${game.conesPlaced.length >= 2 ? "Slowing" : "Live"}</strong></span>
+      <span>Traffic <strong>${game.conesPlaced.length === 0 ? "Live" : game.zoneSecured ? "Diverted" : "Merging"}</strong></span>
       <span>Water service <strong>${!game.utilityMarked ? "Unknown" : game.waterValveClosed ? "OFF" : "Marked · ON"}</strong></span>
       <span>Safety / Service / Quality <strong>${Math.round(game.scores.safety)} / ${Math.round(game.scores.service)} / ${Math.round(game.scores.quality)}</strong></span>
       <span>Downstream line <strong>${history.downstreamClog ? "Restricted" : "Clear"}</strong></span>
@@ -702,7 +700,9 @@
       <span>Town trust / Crew rank <strong>${history.trust} / ${1 + Math.floor((history.drainJobs + history.waterJobs + history.potholeJobs) / 3)}</strong></span>
       <span>Quick-load rack <strong>${history.rackUpgrade ? "Installed" : "Stock"}</strong></span>
       <span>Completed drain / water / road calls <strong>${history.drainJobs} / ${history.waterJobs} / ${history.potholeJobs}</strong></span>
-      <span>Prior shifts <strong>${history.shifts}</strong></span>`;
+      <span>Prior shifts <strong>${history.shifts}</strong></span>
+      ${qaTrafficJob ? `<span id="qaTrafficStatus">QA passes / collisions <strong>${game.trafficPasses} / ${game.collisions}</strong></span>
+      <span>QA cone / crew clearance <strong>${Number.isFinite(game.minConeClearance) ? game.minConeClearance.toFixed(1) : "waiting"} / ${Number.isFinite(game.minCrewClearance) ? game.minCrewClearance.toFixed(1) : "waiting"}</strong></span>` : ""}`;
   }
 
   function draw() {
@@ -946,13 +946,14 @@
 
   function drawWorkZone() {
     const coneTargets = activeConeTargets();
-    if (game.zoneSecured && game.conesPlaced.length === coneTargets.length) {
+    if (game.conesPlaced.length > 0) {
       const pothole = game.jobType === "pothole";
       const baseY = pothole ? 267 : 330;
-      const routeY = pothole ? 232 : 294;
+      const routeY = pothole ? 222 : 294;
+      const fullySecured = game.zoneSecured && game.conesPlaced.length === coneTargets.length;
       ctx.save();
-      ctx.strokeStyle = "rgba(105,220,218,.38)";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = fullySecured ? "rgba(105,220,218,.55)" : "rgba(255,195,72,.42)";
+      ctx.lineWidth = fullySecured ? 4 : 3;
       ctx.setLineDash([13, 10]);
       ctx.beginPath();
       ctx.moveTo(390, baseY);
@@ -1568,5 +1569,33 @@
   updateHistoryNote();
   syncMuteButton();
   syncUI();
+  if (["drain", "water", "pothole"].includes(qaTrafficJob)) {
+    startGame(qaTrafficJob);
+    game.conesPlaced = Array.from({ length: qaConeCount }, (_, index) => index);
+    game.zoneSecured = qaConeCount === 3;
+    game.step = game.zoneSecured ? "locator" : "cones";
+    game.player = {
+      ...game.player,
+      ...(qaTrafficJob === "pothole" ? { x: 690, y: 275 } : qaTrafficJob === "water" ? { x: 794, y: 348 } : { x: 664, y: 404 })
+    };
+    game.gradeReason = `TRAFFIC QA · Crew stationary with ${qaConeCount}/3 taper cones deployed.`;
+    syncUI();
+  }
+  Object.defineProperty(window, "PublicWorksTrafficQA", {
+    configurable: false,
+    get() {
+      return Object.freeze({
+        jobType: game.jobType,
+        zoneSecured: game.zoneSecured,
+        conesPlaced: game.conesPlaced.length,
+        collisions: game.collisions,
+        safety: Math.round(game.scores.safety),
+        trafficPasses: game.trafficPasses,
+        minConeClearance: Number.isFinite(game.minConeClearance) ? Math.round(game.minConeClearance * 10) / 10 : null,
+        minCrewClearance: Number.isFinite(game.minCrewClearance) ? Math.round(game.minCrewClearance * 10) / 10 : null,
+        cars: game.cars.map((car) => ({ x: Math.round(car.x), baseY: car.y, drawY: Math.round(car.drawY ?? car.y) }))
+      });
+    }
+  });
   requestAnimationFrame(frame);
 })();

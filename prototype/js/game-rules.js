@@ -17,6 +17,24 @@
     done: Object.freeze({})
   });
 
+  const CONE_LAYOUTS = Object.freeze({
+    drain: Object.freeze([
+      Object.freeze({ x: 700, y: 332 }),
+      Object.freeze({ x: 655, y: 344 }),
+      Object.freeze({ x: 610, y: 356 })
+    ]),
+    water: Object.freeze([
+      Object.freeze({ x: 700, y: 332 }),
+      Object.freeze({ x: 655, y: 344 }),
+      Object.freeze({ x: 610, y: 356 })
+    ]),
+    pothole: Object.freeze([
+      Object.freeze({ x: 590, y: 252 }),
+      Object.freeze({ x: 640, y: 263 }),
+      Object.freeze({ x: 690, y: 274 })
+    ])
+  });
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -203,6 +221,10 @@
     return { ...list[Math.abs(Math.floor(shiftNumber)) % list.length] };
   }
 
+  function coneLayout(jobType) {
+    return (CONE_LAYOUTS[jobType] || CONE_LAYOUTS.drain).map((target) => ({ ...target }));
+  }
+
   function trafficRoute(jobType, carValue, zoneSecured) {
     const car = carValue && typeof carValue === "object" ? carValue : {};
     const y = Number.isFinite(car.y) ? car.y : 300;
@@ -226,7 +248,7 @@
       factor = t * t * (3 - 2 * t);
     }
 
-    const routeY = pothole ? 232 : 294;
+    const routeY = pothole ? 222 : 294;
     return {
       drawY: y + (routeY - y) * factor,
       speedMultiplier: 1 - .52 * factor,
@@ -249,6 +271,7 @@
     JOB_TRANSITIONS,
     bestGrade,
     clamp,
+    coneLayout,
     consequenceReport,
     computeOverallScore,
     createInitialScores,

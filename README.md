@@ -48,6 +48,8 @@ Build 1.1 replaces the original flat systems-sketch presentation with a cohesive
 
 Build 1.2 makes traffic control physically meaningful. Each job has a deliberate, sequential three-cone taper on the affected lane. Completing it creates a visible merge path: approaching cars slow, smoothly change lanes around the signed work area, then merge back. Crew members inside the properly protected work zone cannot be struck by the diverted traffic; stepping outside it remains dangerous.
 
+Build 1.3 closes the remaining setup gap: the first placed cone activates avoidance immediately, so vehicles never drive through a deployed cone while the rest of the taper is being assembled. Cone layouts and routing share one tested data source, with at least 30 Canvas units of vehicle/cone clearance. A deterministic `?qaTraffic=drain`, `water`, or `pothole` runtime scenario exposes pass, collision, safety, and minimum-clearance telemetry for repeatable browser playtesting; `&qaCones=1` or `2` validates incomplete setup states.
+
 Successful shifts earn department budget and town trust; incidents and failed calls cost both. Persistent drain, water, and road completions raise crew rank, and the title screen offers a $500 quick-load rack upgrade that improves field movement and reduces time-pressure loss.
 
 ## Canonical repository and deployment policy
