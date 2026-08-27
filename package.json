@@ -1,6 +1,6 @@
 {
   "name": "public-works-department",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Systemic public works game and dependency-free browser vertical slice.",
   "scripts": {

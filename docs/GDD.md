@@ -344,6 +344,8 @@ Build 1.3 makes every deployed cone authoritative immediately rather than waitin
 
 Build 1.4 adds a fourth full dispatch: a wind-thrown tree entangled with a streetlight wire. The shared work-order grammar now supports voltage/tension inspection, chainsaw and winch retrieval, progressive controlled sectioning, overhead-clearance verification, and a dangerous yank-and-drag shortcut. The repaired scene visibly converts the obstruction into shoulder-stacked logs. Rushed removal persists a hanging-limb callback into the next tree shift, while gusting wind, school-bus traffic, and calm-cleanup modifiers change the risk/reward profile.
 
+Build 1.5 adds a fifth full dispatch centered on the traffic-signal controller. The player meters the cabinet feed, diagnoses a failed phase relay, retrieves insulated electrical equipment, replaces or bypasses the relay, and verifies a complete signal cycle. Signal heads visibly flash during failure and resume normal red-yellow-green operation after repair. A rushed bypass persists an intermittent-signal callback, extending the town-state model into electrical infrastructure.
+
 ## 17. Browser technical approach
 
 - Plain HTML/CSS/JavaScript with Canvas 2D; no dependencies, bundler, or build step.
@@ -394,7 +396,7 @@ WorldEvent { id, type, sourceId, targetId, amount, tags[], occurredAt }
 ## 20. Milestone summary
 
 - **M0 — Design proof (complete):** one browser call, causal traffic/drain systems, grade, saved consequence, living documentation.
-- **M1 — Browser vertical slice (current):** four replayable calls, audio/accessibility options, deterministic job modifiers, persistent callbacks, and an economy loop; continue tuning and player testing.
+- **M1 — Browser vertical slice (current):** five replayable calls, audio/accessibility options, deterministic job modifiers, persistent callbacks, and an economy loop; continue tuning and player testing.
 - **M2 — Systems testbed:** move job definitions out of the renderer, add utility-map and pedestrian systems, and deepen generated modifiers.
 - **M3 — Unity graybox:** 3D intersection, one vehicle, tool grammar, solo job parity.
 - **M4 — Two-player network proof:** host/join, shared objects, traffic control + repair coordination, reconnect and outcome persistence.
@@ -444,6 +446,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-021 | Build 1.2 gives every job a sequential lane-specific cone taper and deterministic traffic diversion path. | Traffic control must change vehicle behavior and create a genuinely protected workplace, or the game's core municipal-work fantasy is dishonest. | 2026-08-27 |
 | D-022 | Build 1.3 activates avoidance on the first cone and adds a deterministic live traffic QA scene with read-only telemetry. | The work-zone promise must hold during setup and be verifiable in the actual running game, not only in isolated rule tests. | 2026-08-27 |
 | D-023 | Build 1.4 adds fallen-tree and overhead-wire response as the fourth complete dispatch, with controlled sectioning and a hanging-limb callback. | Expands content through a new hazard/tool chain while reusing the proven intersection, traffic taper, state grammar, and persistence architecture. | 2026-08-27 |
+| D-024 | Build 1.5 adds traffic-signal controller repair as the fifth dispatch, with visible phase behavior and an intermittent-fault callback. | Electrical infrastructure broadens the systemic job vocabulary while keeping diagnosis, tools, verification, and persistence legible. | 2026-08-27 |
 
 ### Open questions
 

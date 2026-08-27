@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#12221f">
   <title>Public Works Department — First Shift</title>
   <meta name="description" content="A tiny systemic public works game: secure the street, clear the drain, and live with tomorrow's consequences.">
-  <link rel="stylesheet" href="styles.css?v=1.4">
+  <link rel="stylesheet" href="styles.css?v=1.5">
 </head>
 <body>
   <main class="game-shell">
@@ -18,7 +18,7 @@
       <div class="header-actions">
         <button id="restartButton" class="audio-button" type="button" hidden>Restart shift</button>
         <button id="muteButton" class="audio-button" type="button" aria-pressed="false">Sound on</button>
-        <div id="shiftChip" class="shift-chip" aria-label="Current conditions"><span class="rain-dot"></span> Four calls waiting · 4:18 PM</div>
+        <div id="shiftChip" class="shift-chip" aria-label="Current conditions"><span class="rain-dot"></span> Five calls waiting · 4:18 PM</div>
       </div>
     </header>
 
@@ -41,7 +41,7 @@
           </div>
         </div>
         <div id="startPanel" class="overlay-card">
-          <p class="stamp">BELLWETHER DISPATCH · FOUR OPEN CALLS</p>
+          <p class="stamp">BELLWETHER DISPATCH · FIVE OPEN CALLS</p>
           <h2>GRAND &amp; BIRCH NEEDS A CREW</h2>
           <p>Choose today’s work order. All calls require traffic control, utility locating, the right truck tool, a durable repair, verification, cleanup, and civic consequences.</p>
           <div id="historyNote" class="history-note" hidden></div>
@@ -49,6 +49,7 @@
           <button id="waterButton" type="button">14-08 · Water main leak</button>
           <button id="potholeButton" type="button">14-09 · Pothole collapse</button>
           <button id="treeButton" type="button">14-10 · Fallen tree &amp; wire</button>
+          <button id="signalButton" type="button">14-11 · Traffic signal fault</button>
           <button id="upgradeButton" class="upgrade-button" type="button">Buy quick-load rack · $500</button>
           <button id="resetButton" class="text-button" type="button">Reset town history</button>
         </div>
@@ -85,9 +86,9 @@
       </aside>
     </section>
 
-    <footer>Playable build 1.4 · Four systemic dispatches · Verified traffic avoidance · Persistent civic consequences</footer>
+    <footer>Playable build 1.5 · Five systemic dispatches · Electrical infrastructure · Persistent civic consequences</footer>
   </main>
-  <script src="js/game-rules.js?v=1.4"></script>
-  <script src="app.js?v=1.4"></script>
+  <script src="js/game-rules.js?v=1.5"></script>
+  <script src="app.js?v=1.5"></script>
 </body>
 </html>

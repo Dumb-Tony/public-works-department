@@ -37,6 +37,11 @@
       Object.freeze({ x: 575, y: 252 }),
       Object.freeze({ x: 625, y: 263 }),
       Object.freeze({ x: 675, y: 274 })
+    ]),
+    signal: Object.freeze([
+      Object.freeze({ x: 610, y: 356 }),
+      Object.freeze({ x: 655, y: 344 }),
+      Object.freeze({ x: 700, y: 332 })
     ])
   });
 
@@ -77,10 +82,12 @@
       weakClamp: Boolean(history.weakClamp),
       failedPatch: Boolean(history.failedPatch),
       hangingLimb: Boolean(history.hangingLimb),
+      signalFault: Boolean(history.signalFault),
       drainJobs: Number.isFinite(history.drainJobs) ? Math.max(0, Math.floor(history.drainJobs)) : 0,
       waterJobs: Number.isFinite(history.waterJobs) ? Math.max(0, Math.floor(history.waterJobs)) : 0,
       potholeJobs: Number.isFinite(history.potholeJobs) ? Math.max(0, Math.floor(history.potholeJobs)) : 0,
       treeJobs: Number.isFinite(history.treeJobs) ? Math.max(0, Math.floor(history.treeJobs)) : 0,
+      signalJobs: Number.isFinite(history.signalJobs) ? Math.max(0, Math.floor(history.signalJobs)) : 0,
       budget: Number.isFinite(history.budget) ? Math.max(0, Math.round(history.budget)) : 900,
       trust: Number.isFinite(history.trust) ? clamp(Math.round(history.trust), 0, 100) : 50,
       rackUpgrade: Boolean(history.rackUpgrade),
@@ -93,7 +100,7 @@
     return {
       safety: 100,
       service: clamp(100 - (history.downstreamClog ? 16 : 0) - (history.waterOutage ? 18 : 0), 0, 100),
-      quality: history.weakClamp || history.failedPatch || history.hangingLimb ? 82 : 100
+      quality: history.weakClamp || history.failedPatch || history.hangingLimb || history.signalFault ? 82 : 100
     };
   }
 
@@ -109,6 +116,7 @@
         weakClamp: false,
         failedPatch: false,
         hangingLimb: false,
+        signalFault: false,
         lastResult: "Flood response missed"
       };
     }
@@ -119,9 +127,12 @@
         weakClamp: jobType === "water" && Boolean(rushed),
         failedPatch: jobType === "pothole" && Boolean(rushed),
         hangingLimb: jobType === "tree" && Boolean(rushed),
+        signalFault: jobType === "signal" && Boolean(rushed),
         lastResult: jobType === "water"
           ? "Water main clamped; Maple Diner outage pending"
-          : jobType === "pothole" ? "Road patched; Maple Diner outage pending" : "Drain open; Maple Diner water outage pending"
+          : jobType === "pothole" ? "Road patched; Maple Diner outage pending"
+            : jobType === "tree" ? "Tree cleared; Maple Diner outage pending"
+              : jobType === "signal" ? "Signal restored; Maple Diner outage pending" : "Drain open; Maple Diner water outage pending"
       };
     }
     if (rushed && jobType === "water") {
@@ -131,6 +142,7 @@
         weakClamp: true,
         failedPatch: false,
         hangingLimb: false,
+        signalFault: false,
         lastResult: "Water restored; temporary clamp callback pending"
       };
     }
@@ -141,6 +153,7 @@
         weakClamp: false,
         failedPatch: true,
         hangingLimb: false,
+        signalFault: false,
         lastResult: "Road reopened; cold patch callback pending"
       };
     }
@@ -151,7 +164,19 @@
         weakClamp: false,
         failedPatch: false,
         hangingLimb: true,
+        signalFault: false,
         lastResult: "Tree cleared; hanging limb callback pending"
+      };
+    }
+    if (rushed && jobType === "signal") {
+      return {
+        downstreamClog: false,
+        waterOutage: false,
+        weakClamp: false,
+        failedPatch: false,
+        hangingLimb: false,
+        signalFault: true,
+        lastResult: "Signal running on bypass; intermittent fault pending"
       };
     }
     if (rushed) {
@@ -161,6 +186,7 @@
         weakClamp: false,
         failedPatch: false,
         hangingLimb: false,
+        signalFault: false,
         lastResult: "Drain open; downstream blockage pending"
       };
     }
@@ -170,10 +196,12 @@
       weakClamp: false,
       failedPatch: false,
       hangingLimb: false,
+      signalFault: false,
       lastResult: jobType === "water"
         ? "Water main clamped and pressure verified"
         : jobType === "pothole" ? "Pothole compacted and surface verified"
-          : jobType === "tree" ? "Tree removed and overhead line verified" : "Drain cleared with no callback"
+          : jobType === "tree" ? "Tree removed and overhead line verified"
+            : jobType === "signal" ? "Signal relay replaced and full cycle verified" : "Drain cleared with no callback"
     };
   }
 
@@ -185,6 +213,7 @@
     if (outcome.weakClamp) callbacks.push({ cause: "Temporary clamp", effect: "Water-main callback" });
     if (outcome.failedPatch) callbacks.push({ cause: "Dump-and-go patch", effect: "Pothole reopens" });
     if (outcome.hangingLimb) callbacks.push({ cause: "Rushed tree pull", effect: "Hanging limb call" });
+    if (outcome.signalFault) callbacks.push({ cause: "Controller bypass", effect: "Signal fails again" });
     if (callbacks.length === 0) {
       return {
         callback: false,
@@ -245,6 +274,11 @@
         { id: "gusting_wind", label: "Gusting wind", hazardRate: 1.28, trafficRate: .92, serviceRate: 1.12, rewardMultiplier: 1.25 },
         { id: "school_bus_route", label: "School bus route", hazardRate: 1.05, trafficRate: 1.28, serviceRate: 1.08, rewardMultiplier: 1.18 },
         { id: "calm_cleanup", label: "Calm cleanup", hazardRate: 1, trafficRate: 1, serviceRate: 1, rewardMultiplier: 1 }
+      ],
+      signal: [
+        { id: "power_fluctuation", label: "Power fluctuation", hazardRate: 1.25, trafficRate: 1.05, serviceRate: 1.12, rewardMultiplier: 1.25 },
+        { id: "school_crossing", label: "School crossing rush", hazardRate: 1.08, trafficRate: 1.3, serviceRate: 1.1, rewardMultiplier: 1.2 },
+        { id: "quiet_window", label: "Quiet repair window", hazardRate: 1, trafficRate: .92, serviceRate: 1, rewardMultiplier: 1 }
       ]
     };
     const list = variants[jobType] || variants.drain;

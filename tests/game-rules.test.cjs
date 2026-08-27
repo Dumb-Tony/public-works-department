@@ -52,10 +52,12 @@ test("history migration fills missing callback fields", () => {
     weakClamp: false,
     failedPatch: false,
     hangingLimb: false,
+    signalFault: false,
     drainJobs: 0,
     waterJobs: 0,
     potholeJobs: 0,
     treeJobs: 0,
+    signalJobs: 0,
     budget: 900,
     trust: 50,
     rackUpgrade: false,
@@ -71,6 +73,7 @@ test("persistent outcomes distinguish careful, rushed, and valve-outage results"
     weakClamp: false,
     failedPatch: false,
     hangingLimb: false,
+    signalFault: false,
     lastResult: "Drain cleared with no callback"
   });
   assert.equal(rules.persistentOutcome({ success: true, rushed: true, waterValveClosed: false }).downstreamClog, true);
@@ -171,7 +174,7 @@ test("pothole taper diverts the upper lane and protects only the signed work are
 });
 
 test("routed cars physically clear every cone in both lane-specific tapers", () => {
-  for (const jobType of ["drain", "water", "pothole", "tree"]) {
+  for (const jobType of ["drain", "water", "pothole", "tree", "signal"]) {
     const baseY = jobType === "pothole" || jobType === "tree" ? 267 : 330;
     for (const cone of rules.coneLayout(jobType)) {
       const car = rules.trafficRoute(jobType, { x: cone.x, y: baseY }, true);
@@ -204,4 +207,21 @@ test("fallen-tree modifiers and cone taper use the upper-lane traffic plan", () 
   assert.equal(rules.trafficRoute("tree", { x: 650, y: 267 }, true).drawY, 222);
   assert.equal(rules.trafficRoute("tree", { x: 650, y: 330 }, true).drawY, 330);
   assert.equal(rules.isCrewProtected("tree", { x: 705, y: 275 }, true), true);
+});
+
+test("signal-controller bypass persists an intermittent fault", () => {
+  const rushed = rules.persistentOutcome({ success: true, rushed: true, waterValveClosed: false, jobType: "signal" });
+  assert.equal(rushed.signalFault, true);
+  assert.equal(rushed.lastResult, "Signal running on bypass; intermittent fault pending");
+  assert.equal(rules.consequenceReport(rushed).effect, "Signal fails again");
+  const careful = rules.persistentOutcome({ success: true, rushed: false, waterValveClosed: false, jobType: "signal" });
+  assert.equal(careful.signalFault, false);
+  assert.equal(careful.lastResult, "Signal relay replaced and full cycle verified");
+});
+
+test("signal dispatch has deterministic modifiers and lower-lane protection", () => {
+  assert.equal(rules.shiftModifier("signal", 0).id, "power_fluctuation");
+  assert.equal(rules.coneLayout("signal").length, 3);
+  assert.equal(rules.trafficRoute("signal", { x: 650, y: 330 }, true).drawY, 294);
+  assert.equal(rules.isCrewProtected("signal", { x: 620, y: 360 }, true), true);
 });
