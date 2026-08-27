@@ -16,7 +16,9 @@
     penalizeScore,
     persistentOutcome,
     shiftEconomy,
-    shiftModifier
+    shiftModifier,
+    trafficRoute,
+    isCrewProtected
   } = rules;
 
   const canvas = document.querySelector("#game");
@@ -58,11 +60,27 @@
   const H = canvas.height;
   const keys = new Set();
   const justPressed = new Set();
-  const coneTargets = [
-    { x: 607, y: 368 },
-    { x: 651, y: 368 },
-    { x: 695, y: 368 }
-  ];
+  const coneLayouts = {
+    drain: [
+      { x: 700, y: 332 },
+      { x: 655, y: 344 },
+      { x: 610, y: 356 }
+    ],
+    water: [
+      { x: 700, y: 332 },
+      { x: 655, y: 344 },
+      { x: 610, y: 356 }
+    ],
+    pothole: [
+      { x: 590, y: 246 },
+      { x: 640, y: 257 },
+      { x: 690, y: 268 }
+    ]
+  };
+
+  function activeConeTargets() {
+    return coneLayouts[game?.jobType] || coneLayouts.drain;
+  }
 
   const world = {
     truck: { x: 110, y: 480, w: 150, h: 72 },
@@ -273,7 +291,7 @@
     updateTraffic(dt);
     updateRain(dt);
 
-    const secured = game.conesPlaced.length === coneTargets.length;
+    const secured = game.conesPlaced.length === activeConeTargets().length;
     const timeDrain = (secured ? 0.018 : 0.034) * (history.rackUpgrade ? 0.82 : 1) * game.modifier.serviceRate;
     game.scores.service = clamp(game.scores.service - timeDrain * dt * 10, 0, 100);
     if (game.step === "verify") {
@@ -318,26 +336,26 @@
   }
 
   function updateTraffic(dt) {
-    const protectedZone = game.conesPlaced.length >= 2;
+    const protectedZone = game.zoneSecured && game.conesPlaced.length === activeConeTargets().length;
+    const crewProtected = isCrewProtected(game.jobType, game.player, protectedZone);
     for (const car of game.cars) {
-      let speed = car.speed * game.modifier.trafficRate;
-      const approaching = car.dir > 0 ? car.x > 500 && car.x < 770 : car.x < 800 && car.x > 520;
-      if (protectedZone && approaching) speed *= 0.48;
+      const route = trafficRoute(game.jobType, car, protectedZone);
+      const speed = car.speed * game.modifier.trafficRate * route.speedMultiplier;
       car.x += car.dir * speed * dt;
-      const laneShift = protectedZone && car.x > 540 && car.x < 770 ? (car.y < 300 ? -18 : 18) : 0;
-      car.drawY = car.y + laneShift;
+      car.drawY = trafficRoute(game.jobType, car, protectedZone).drawY;
       if (car.dir > 0 && car.x > W + 90) car.x = -90;
       if (car.dir < 0 && car.x < -90) car.x = W + 90;
 
       const hitX = Math.abs(game.player.x - car.x) < car.width * 0.48 + game.player.radius;
       const hitY = Math.abs(game.player.y - car.drawY) < car.height * 0.48 + game.player.radius;
-      if (hitX && hitY && game.player.hitCooldown <= 0) {
+      const safelyBypassing = crewProtected && route.diverted;
+      if (!safelyBypassing && hitX && hitY && game.player.hitCooldown <= 0) {
         cue("impact");
         game.collisions += 1;
         penalize("safety", 22, "Vehicle contact: work-zone incident reported.");
         game.player.hitCooldown = 1.5;
         game.player.y += car.y < 300 ? 42 : -42;
-      } else if (hitX && Math.abs(game.player.y - car.drawY) < 46 && game.player.hitCooldown <= 0) {
+      } else if (!safelyBypassing && hitX && Math.abs(game.player.y - car.drawY) < 46 && game.player.hitCooldown <= 0) {
         game.nearMisses += dt;
         if (game.nearMisses > 1) {
           cue("alert");
@@ -484,7 +502,7 @@
           game.conesPlaced = game.conesPlaced.filter((index) => index !== nearestCone.index);
           game.conesCollected += 1;
           game.gradeReason = `${game.conesCollected}/3 cones recovered. Traffic protection is shrinking.`;
-          if (game.conesCollected === coneTargets.length) advanceJob("cleanup_complete");
+          if (game.conesCollected === activeConeTargets().length) advanceJob("cleanup_complete");
         }
       } else {
         game.prompt = "Recover the three flashing traffic cones";
@@ -553,22 +571,25 @@
   }
 
   function nearestPlacedCone() {
+    const coneTargets = activeConeTargets();
     return game.conesPlaced
       .map((index) => ({ index, d: distance(game.player, coneTargets[index]) }))
       .sort((a, b) => a.d - b.d)[0];
   }
 
   function placeCone() {
-    const nearest = coneTargets
-      .map((target, index) => ({ target, index, d: distance(game.player, target) }))
-      .filter(({ index }) => !game.conesPlaced.includes(index))
-      .sort((a, b) => a.d - b.d)[0];
+    const coneTargets = activeConeTargets();
+    const nextIndex = game.conesPlaced.length;
+    const target = coneTargets[nextIndex];
+    const nearest = target ? { target, index: nextIndex, d: distance(game.player, target) } : null;
 
     if (nearest && nearest.d < 52) {
       cue("place");
       game.conesPlaced.push(nearest.index);
       game.carrying = null;
-      game.gradeReason = `Work zone ${game.conesPlaced.length}/3 secured.`;
+      game.gradeReason = game.conesPlaced.length === coneTargets.length
+        ? "Traffic taper locked in. Cars are merging around the protected work zone."
+        : `Taper cone ${game.conesPlaced.length}/3 placed. Follow the chevrons toward the work area.`;
       if (game.conesPlaced.length === coneTargets.length) {
         game.zoneSecured = true;
         advanceJob("zone_secured");
@@ -924,14 +945,62 @@
   }
 
   function drawWorkZone() {
+    const coneTargets = activeConeTargets();
+    if (game.zoneSecured && game.conesPlaced.length === coneTargets.length) {
+      const pothole = game.jobType === "pothole";
+      const baseY = pothole ? 267 : 330;
+      const routeY = pothole ? 232 : 294;
+      ctx.save();
+      ctx.strokeStyle = "rgba(105,220,218,.38)";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([13, 10]);
+      ctx.beginPath();
+      ctx.moveTo(390, baseY);
+      ctx.bezierCurveTo(455, baseY, 475, routeY, 535, routeY);
+      ctx.lineTo(810, routeY);
+      ctx.bezierCurveTo(865, routeY, 880, baseY, 940, baseY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(105,220,218,.58)";
+      const arrowDirection = pothole ? 1 : -1;
+      for (const x of [505, 760]) {
+        ctx.beginPath();
+        ctx.moveTo(x + 9 * arrowDirection, routeY);
+        ctx.lineTo(x - 3 * arrowDirection, routeY - 6);
+        ctx.lineTo(x - 3 * arrowDirection, routeY + 6);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    }
+    if (game.conesPlaced.length > 0 || game.step === "cones") {
+      ctx.save();
+      ctx.strokeStyle = game.zoneSecured ? "rgba(255,178,47,.72)" : "rgba(255,201,74,.28)";
+      ctx.lineWidth = game.zoneSecured ? 5 : 3;
+      ctx.setLineDash(game.zoneSecured ? [10, 7] : [4, 7]);
+      ctx.beginPath();
+      coneTargets.forEach((target, index) => index === 0 ? ctx.moveTo(target.x, target.y) : ctx.lineTo(target.x, target.y));
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
     for (let i = 0; i < coneTargets.length; i++) {
       const target = coneTargets[i];
       if (!game.conesPlaced.includes(i) && game.step === "cones") {
-        ctx.strokeStyle = "rgba(255,210,82,.8)";
-        ctx.lineWidth = 2;
+        const isNext = i === game.conesPlaced.length;
+        ctx.strokeStyle = isNext ? "rgba(255,220,92,.95)" : "rgba(255,210,82,.24)";
+        ctx.lineWidth = isNext ? 3 : 1.5;
         ctx.setLineDash([5, 5]);
-        ctx.strokeRect(target.x - 12, target.y - 9, 24, 18);
+        ctx.beginPath(); ctx.arc(target.x, target.y, isNext ? 18 : 12, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
+        if (isNext) {
+          ctx.fillStyle = "rgba(8,20,24,.9)";
+          fillRoundRect(target.x - 34, target.y - 39, 68, 16, 5, "rgba(8,20,24,.9)");
+          ctx.fillStyle = "#ffd452";
+          ctx.font = "900 9px ui-sans-serif, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`CONE ${i + 1}`, target.x, target.y - 28);
+          ctx.textAlign = "left";
+        }
       } else if (game.conesPlaced.includes(i)) {
         if (game.step === "cleanup") {
           ctx.strokeStyle = `rgba(255,210,82,${.5 + Math.sin(game.elapsed * 6 + i) * .35})`;
@@ -1046,10 +1115,10 @@
     if (game.mode !== "playing" || game.step === "done") return null;
     if (game.step === "cones") {
       if (!game.carrying) return { x: 188, y: 474, label: "UNIT 12" };
-      const openTarget = coneTargets
-        .map((target, index) => ({ ...target, index, d: distance(game.player, target) }))
-        .filter((target) => !game.conesPlaced.includes(target.index))
-        .sort((a, b) => a.d - b.d)[0];
+      const coneTargets = activeConeTargets();
+      const index = game.conesPlaced.length;
+      const target = coneTargets[index];
+      const openTarget = target ? { ...target, index } : null;
       return openTarget ? { x: openTarget.x, y: openTarget.y, label: "CONE MARKER" } : null;
     }
     if (["locator", "tool", "return"].includes(game.step)) return { x: 188, y: 474, label: "UNIT 12" };
@@ -1065,6 +1134,7 @@
       return game.jobType === "water" ? { ...world.waterLeak, label: "PRESSURE TEST" } : game.jobType === "pothole" ? { ...world.pothole, label: "CHECK SURFACE" } : { ...world.drain, label: "STORM INLET" };
     }
     if (game.step === "cleanup") {
+      const coneTargets = activeConeTargets();
       const nearest = nearestPlacedCone();
       return nearest ? { ...coneTargets[nearest.index], label: "RECOVER CONE" } : { x: 188, y: 474, label: "UNIT 12" };
     }

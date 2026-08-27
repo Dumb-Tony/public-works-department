@@ -145,3 +145,24 @@ test("consequence report explains the causal chain saved for tomorrow", () => {
     effect: "Town stays in service"
   });
 });
+
+test("a secured lower-lane taper smoothly diverts traffic around drain work", () => {
+  assert.deepEqual(rules.trafficRoute("drain", { x: 350, y: 330 }, true), {
+    drawY: 330,
+    speedMultiplier: 1,
+    diverted: false
+  });
+  const routed = rules.trafficRoute("drain", { x: 650, y: 330 }, true);
+  assert.equal(routed.drawY, 294);
+  assert.equal(routed.speedMultiplier, .48);
+  assert.equal(routed.diverted, true);
+  assert.equal(rules.trafficRoute("drain", { x: 650, y: 267 }, true).drawY, 267);
+});
+
+test("pothole taper diverts the upper lane and protects only the signed work area", () => {
+  assert.equal(rules.trafficRoute("pothole", { x: 650, y: 267 }, true).drawY, 232);
+  assert.equal(rules.trafficRoute("pothole", { x: 650, y: 330 }, true).drawY, 330);
+  assert.equal(rules.isCrewProtected("pothole", { x: 690, y: 275 }, true), true);
+  assert.equal(rules.isCrewProtected("pothole", { x: 480, y: 275 }, true), false);
+  assert.equal(rules.isCrewProtected("drain", { x: 664, y: 404 }, false), false);
+});

@@ -46,6 +46,8 @@ The shift report closes the causal loop with a visible **Today → Next Shift** 
 
 Build 1.1 replaces the original flat systems-sketch presentation with a cohesive stylized Bellwether diorama: dimensional wet streets, raised curbs, foliage, an illuminated diner, expressive crew animation, detailed fleet and civilian vehicles, weather particles, water reflections, work lights, atmospheric grading, and a modern glass-and-enamel dispatch UI. It remains dependency-free Canvas code so the public prototype still loads instantly.
 
+Build 1.2 makes traffic control physically meaningful. Each job has a deliberate, sequential three-cone taper on the affected lane. Completing it creates a visible merge path: approaching cars slow, smoothly change lanes around the signed work area, then merge back. Crew members inside the properly protected work zone cannot be struck by the diverted traffic; stepping outside it remains dangerous.
+
 Successful shifts earn department budget and town trust; incidents and failed calls cost both. Persistent drain, water, and road completions raise crew rank, and the title screen offers a $500 quick-load rack upgrade that improves field movement and reduces time-pressure loss.
 
 ## Canonical repository and deployment policy

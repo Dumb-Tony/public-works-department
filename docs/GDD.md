@@ -338,6 +338,8 @@ Build 1.0 RC makes persistence visible at the moment of consequence. Every shift
 
 Build 1.1 is the first full aesthetic pass. It replaces flat placeholder geometry and the document-like shell with a cohesive stylized diorama renderer and dispatch-console UI while leaving simulation coordinates, state transitions, scoring, persistence, and controls unchanged.
 
+Build 1.2 corrects the traffic-control proof. Cone placement is sequential and job-specific rather than three interchangeable points. A complete taper creates a deterministic merge spline for the affected lane: vehicles decelerate on approach, divert fully around the signed work area, and merge back after it. Diverted vehicles cannot collide with a crew member who remains inside that protected area; exposure outside the taper still produces normal near misses and incidents.
+
 ## 17. Browser technical approach
 
 - Plain HTML/CSS/JavaScript with Canvas 2D; no dependencies, bundler, or build step.
@@ -435,6 +437,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-018 | Build 0.9 exposes conditions on the dispatch board and ties them to 0–25% hazard-pay multipliers. | Makes job choice strategically meaningful while preserving legible causality and avoiding an abstract difficulty selector. | 2026-08-25 |
 | D-019 | Build 1.0 RC presents each completed job as an explicit Today → Next Shift causal chain. | The game's signature persistent civic consequence must be understood without reading a long summary or remembering hidden state. | 2026-08-25 |
 | D-020 | Build 1.1 adopts a rain-soaked, chunky municipal diorama and dispatch-console presentation using procedural Canvas art. | Delivers a cohesive game identity immediately while keeping the prototype dependency-free and preserving migration-friendly gameplay rules. | 2026-08-27 |
+| D-021 | Build 1.2 gives every job a sequential lane-specific cone taper and deterministic traffic diversion path. | Traffic control must change vehicle behavior and create a genuinely protected workplace, or the game's core municipal-work fantasy is dishonest. | 2026-08-27 |
 
 ### Open questions
 

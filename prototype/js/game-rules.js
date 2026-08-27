@@ -203,6 +203,48 @@
     return { ...list[Math.abs(Math.floor(shiftNumber)) % list.length] };
   }
 
+  function trafficRoute(jobType, carValue, zoneSecured) {
+    const car = carValue && typeof carValue === "object" ? carValue : {};
+    const y = Number.isFinite(car.y) ? car.y : 300;
+    const x = Number.isFinite(car.x) ? car.x : -100;
+    if (!zoneSecured) return { drawY: y, speedMultiplier: 1, diverted: false };
+
+    const pothole = jobType === "pothole";
+    const affectedLane = pothole ? y < 300 : y >= 300;
+    if (!affectedLane) return { drawY: y, speedMultiplier: 1, diverted: false };
+
+    const start = 520;
+    const end = 810;
+    const ramp = 120;
+    let factor = 0;
+    if (x >= start && x <= end) factor = 1;
+    else if (x > start - ramp && x < start) {
+      const t = (x - (start - ramp)) / ramp;
+      factor = t * t * (3 - 2 * t);
+    } else if (x > end && x < end + ramp) {
+      const t = (end + ramp - x) / ramp;
+      factor = t * t * (3 - 2 * t);
+    }
+
+    const routeY = pothole ? 232 : 294;
+    return {
+      drawY: y + (routeY - y) * factor,
+      speedMultiplier: 1 - .52 * factor,
+      diverted: factor > .05
+    };
+  }
+
+  function isCrewProtected(jobType, positionValue, zoneSecured) {
+    if (!zoneSecured) return false;
+    const position = positionValue && typeof positionValue === "object" ? positionValue : {};
+    const x = Number(position.x);
+    const y = Number(position.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+    return jobType === "pothole"
+      ? x >= 555 && x <= 805 && y >= 245 && y <= 312
+      : x >= 555 && x <= 830 && y >= 310 && y <= 445;
+  }
+
   return Object.freeze({
     JOB_TRANSITIONS,
     bestGrade,
@@ -217,6 +259,8 @@
     penalizeScore,
     persistentOutcome,
     shiftEconomy,
-    shiftModifier
+    shiftModifier,
+    trafficRoute,
+    isCrewProtected
   });
 });
