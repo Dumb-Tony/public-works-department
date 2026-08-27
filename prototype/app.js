@@ -687,8 +687,8 @@
   function draw() {
     ctx.clearRect(0, 0, W, H);
     drawGround();
-    drawServiceCustomer();
     drawRoads();
+    drawServiceCustomer();
     drawFlood();
     drawWorkZone();
     drawTruck();
@@ -696,72 +696,194 @@
     drawObjectiveMarker();
     drawPlayer();
     drawRain();
+    drawAtmosphere();
     drawHUD();
     if (game.paused && game.mode === "playing") drawPause();
   }
 
-  function drawGround() {
-    ctx.fillStyle = "#365141";
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#496554";
-    for (let i = 0; i < 65; i++) ctx.fillRect((i * 97) % W, (i * 61) % H, 2, 2);
-    ctx.fillStyle = "#8d8979";
-    ctx.fillRect(0, 190, W, 26);
-    ctx.fillRect(0, 384, W, 28);
-    ctx.fillRect(374, 0, 26, H);
-    ctx.fillRect(560, 0, 27, H);
-    ctx.fillStyle = "#c8be9e";
-    ctx.font = "700 15px sans-serif";
-    ctx.fillText("GRAND AVE", 24, 210);
+  function fillRoundRect(x, y, width, height, radius, fillStyle) {
+    ctx.fillStyle = fillStyle;
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, radius);
+    ctx.fill();
+  }
+
+  function drawTree(x, y, scale = 1) {
     ctx.save();
-    ctx.translate(392, 130);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText("BIRCH ST", 0, 0);
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = "rgba(4,12,13,.34)";
+    ctx.beginPath(); ctx.ellipse(8, 13, 25, 12, -.25, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#47392b";
+    fillRoundRect(-4, 4, 8, 23, 3, "#47392b");
+    const crown = ctx.createRadialGradient(-7, -9, 3, 0, 0, 30);
+    crown.addColorStop(0, "#55a56f");
+    crown.addColorStop(.55, "#23714f");
+    crown.addColorStop(1, "#123f37");
+    ctx.fillStyle = crown;
+    ctx.beginPath(); ctx.arc(-10, -4, 18, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(8, -9, 21, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(5, 8, 18, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(166,235,176,.22)";
+    ctx.beginPath(); ctx.ellipse(-1, -17, 15, 7, -.35, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
 
+  function drawGround() {
+    const grass = ctx.createLinearGradient(0, 0, W, H);
+    grass.addColorStop(0, "#174b3d");
+    grass.addColorStop(.5, "#225944");
+    grass.addColorStop(1, "#103c36");
+    ctx.fillStyle = grass;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = "rgba(116,184,120,.13)";
+    for (let i = 0; i < 110; i++) {
+      const x = (i * 83 + 29) % W;
+      const y = (i * 47 + 11) % H;
+      ctx.beginPath(); ctx.ellipse(x, y, 2 + (i % 3), 1, (i % 5) * .3, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Raised sidewalks and curbs give the intersection a toy-diorama silhouette.
+    ctx.fillStyle = "rgba(7,16,17,.35)";
+    ctx.fillRect(0, 194, W, 30);
+    ctx.fillRect(0, 384, W, 33);
+    ctx.fillRect(370, 0, 34, H);
+    ctx.fillRect(557, 0, 35, H);
+    const walk = ctx.createLinearGradient(0, 190, 0, 416);
+    walk.addColorStop(0, "#b8b4a8");
+    walk.addColorStop(1, "#7f827d");
+    ctx.fillStyle = walk;
+    ctx.fillRect(0, 188, W, 27);
+    ctx.fillRect(0, 384, W, 29);
+    ctx.fillRect(374, 0, 27, H);
+    ctx.fillRect(560, 0, 28, H);
+    ctx.fillStyle = "rgba(234,237,224,.24)";
+    ctx.fillRect(0, 189, W, 3);
+    ctx.fillRect(375, 0, 3, H);
+    ctx.strokeStyle = "rgba(52,58,57,.38)";
+    ctx.lineWidth = 1;
+    for (let x = 22; x < W; x += 58) {
+      ctx.beginPath(); ctx.moveTo(x, 189); ctx.lineTo(x, 214); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 25, 385); ctx.lineTo(x + 25, 412); ctx.stroke();
+    }
+    for (let y = 18; y < H; y += 54) {
+      ctx.beginPath(); ctx.moveTo(375, y); ctx.lineTo(400, y + 8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(561, y + 12); ctx.lineTo(587, y + 5); ctx.stroke();
+    }
+
+    drawTree(67, 91, 1.2);
+    drawTree(292, 95, .95);
+    drawTree(655, 103, 1.08);
+    drawTree(902, 520, 1.25);
+    drawTree(318, 531, .85);
+  }
+
   function drawServiceCustomer() {
-    ctx.fillStyle = "rgba(0,0,0,.25)";
-    ctx.fillRect(791, 71, 148, 92);
-    ctx.fillStyle = game.waterValveClosed ? "#4b3a35" : "#d5c49a";
-    ctx.fillRect(784, 64, 148, 92);
-    ctx.fillStyle = "#b64e3c";
-    ctx.fillRect(774, 52, 168, 22);
-    ctx.fillStyle = "#fff2cf";
-    ctx.font = "900 13px sans-serif";
-    ctx.fillText("MAPLE DINER", 806, 68);
-    ctx.fillStyle = game.waterValveClosed ? "#ff665d" : "#274f57";
-    ctx.fillRect(802, 91, 112, 38);
-    ctx.fillStyle = "#f4f0db";
-    ctx.font = "800 11px sans-serif";
-    ctx.fillText(game.waterValveClosed ? "NO WATER" : "OPEN · WATER ON", 812, 114);
+    ctx.save();
+    ctx.shadowColor = "rgba(2,8,10,.55)";
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 10;
+    fillRoundRect(778, 50, 164, 111, 7, game.waterValveClosed ? "#453c3b" : "#f0d29b");
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = game.waterValveClosed ? "#815047" : "#e45c47";
+    ctx.beginPath();
+    ctx.moveTo(768, 58); ctx.lineTo(951, 58); ctx.lineTo(938, 37); ctx.lineTo(785, 37); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#ffefbf";
+    for (let x = 786; x < 944; x += 28) ctx.fillRect(x, 58, 14, 14);
+    ctx.fillStyle = "#d54d3c";
+    for (let x = 800; x < 944; x += 28) ctx.fillRect(x, 58, 14, 14);
+    fillRoundRect(796, 83, 66, 50, 4, game.waterValveClosed ? "#1d2728" : "#174a55");
+    fillRoundRect(875, 83, 48, 68, 4, "#25464c");
+    ctx.fillStyle = game.waterValveClosed ? "#592f31" : "rgba(114,220,238,.4)";
+    ctx.fillRect(802, 89, 54, 29);
+    ctx.fillStyle = "rgba(250,222,133,.5)";
+    ctx.fillRect(881, 90, 36, 52);
+    ctx.fillStyle = "#fff3cf";
+    ctx.font = "900 13px ui-sans-serif, sans-serif";
+    ctx.textAlign = "center";
+    ctx.shadowColor = game.waterValveClosed ? "#ff665d" : "#ffb34f";
+    ctx.shadowBlur = 7;
+    ctx.fillText("MAPLE DINER", 860, 52);
+    ctx.shadowBlur = 0;
+    fillRoundRect(801, 137, 121, 19, 4, game.waterValveClosed ? "#8d3434" : "#1d6f67");
+    ctx.fillStyle = "#f8f0d7";
+    ctx.font = "800 9px ui-sans-serif, sans-serif";
+    ctx.fillText(game.waterValveClosed ? "SERVICE INTERRUPTED" : "OPEN · WATER ON", 861, 150);
+    ctx.textAlign = "left";
+    ctx.restore();
   }
 
   function drawRoads() {
-    ctx.fillStyle = "#333b3d";
+    const asphalt = ctx.createLinearGradient(0, 216, 0, 384);
+    asphalt.addColorStop(0, "#34434a");
+    asphalt.addColorStop(.48, "#202f36");
+    asphalt.addColorStop(1, "#16272e");
+    ctx.fillStyle = asphalt;
     ctx.fillRect(0, 216, W, 168);
+    const vertical = ctx.createLinearGradient(400, 0, 560, 0);
+    vertical.addColorStop(0, "#17272e");
+    vertical.addColorStop(.5, "#2d3d43");
+    vertical.addColorStop(1, "#14252c");
+    ctx.fillStyle = vertical;
     ctx.fillRect(400, 0, 160, H);
-    ctx.strokeStyle = "#dbc75a";
-    ctx.lineWidth = 3;
-    ctx.setLineDash([22, 18]);
+
+    // Wet-road reflections and patched asphalt break up the broad flat planes.
+    const sheen = ctx.createLinearGradient(0, 235, W, 350);
+    sheen.addColorStop(0, "rgba(90,153,166,0)");
+    sheen.addColorStop(.48, "rgba(120,186,194,.12)");
+    sheen.addColorStop(.65, "rgba(255,179,71,.08)");
+    sheen.addColorStop(1, "rgba(90,153,166,0)");
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, 224, W, 150);
+    ctx.fillStyle = "rgba(8,18,23,.18)";
+    for (let i = 0; i < 28; i++) {
+      const x = (i * 109 + 17) % W;
+      const y = 230 + (i * 37) % 138;
+      ctx.beginPath(); ctx.ellipse(x, y, 16 + i % 11, 2 + i % 3, -.12, 0, Math.PI * 2); ctx.fill();
+    }
+
+    ctx.strokeStyle = "#f1c84b";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([24, 20]);
     ctx.beginPath(); ctx.moveTo(0, 300); ctx.lineTo(W, 300); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(480, 0); ctx.lineTo(480, H); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.strokeStyle = "rgba(255,255,255,.55)";
-    ctx.lineWidth = 5;
-    for (let x = 405; x < 560; x += 20) {
-      ctx.beginPath(); ctx.moveTo(x, 226); ctx.lineTo(x, 249); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x, 351); ctx.lineTo(x, 374); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,246,219,.72)";
+    ctx.lineWidth = 6;
+    for (let x = 407; x < 557; x += 22) {
+      ctx.beginPath(); ctx.moveTo(x, 224); ctx.lineTo(x, 250); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, 350); ctx.lineTo(x, 376); ctx.stroke();
     }
+    ctx.fillStyle = "rgba(236,226,193,.78)";
+    ctx.font = "900 12px ui-sans-serif, sans-serif";
+    ctx.fillText("GRAND AVE", 24, 207);
+    ctx.save(); ctx.translate(393, 130); ctx.rotate(-Math.PI / 2); ctx.fillText("BIRCH ST", 0, 0); ctx.restore();
+
+    // Cast-iron details anchor the utilities in the street.
+    ctx.fillStyle = "#111d22";
+    ctx.beginPath(); ctx.arc(520, 335, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#627077";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(520, 335, 10, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(511, 335); ctx.lineTo(529, 335); ctx.stroke();
   }
 
   function drawFlood() {
     if (game.jobType === "pothole") {
       const size = 17 + game.flood * .32;
-      ctx.fillStyle = game.repairRestored ? "#4b5253" : "#151b1c";
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,.65)";
+      ctx.shadowBlur = 13;
+      const hole = ctx.createRadialGradient(world.pothole.x - 6, world.pothole.y - 5, 3, world.pothole.x, world.pothole.y, size);
+      hole.addColorStop(0, game.repairRestored ? "#56636a" : "#091318");
+      hole.addColorStop(.72, game.repairRestored ? "#36464c" : "#111a1d");
+      hole.addColorStop(1, "#667077");
+      ctx.fillStyle = hole;
       ctx.beginPath(); ctx.ellipse(world.pothole.x, world.pothole.y, size, size * .62, .15, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "#687073";
-      ctx.lineWidth = 3;
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(143,158,162,.72)";
+      ctx.lineWidth = 2.5;
       for (let i = 0; i < 5; i++) {
         const angle = i * 1.28 + .2;
         ctx.beginPath();
@@ -769,23 +891,35 @@
         ctx.lineTo(world.pothole.x + Math.cos(angle) * size * 1.45, world.pothole.y + Math.sin(angle) * size * .9);
         ctx.stroke();
       }
+      if (!game.repairRestored) {
+        ctx.fillStyle = "rgba(105,171,190,.2)";
+        ctx.beginPath(); ctx.ellipse(world.pothole.x - 3, world.pothole.y - 2, size * .62, size * .24, .15, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
       return;
     }
     const source = game.jobType === "water" ? world.waterLeak : world.inlet;
     const radius = 38 + game.flood * 1.25;
-    const gradient = ctx.createRadialGradient(source.x, source.y, 5, source.x, source.y, radius);
-    gradient.addColorStop(0, "rgba(74,160,196,.72)");
-    gradient.addColorStop(1, "rgba(74,160,196,0)");
+    const gradient = ctx.createRadialGradient(source.x - 10, source.y - 8, 5, source.x, source.y, radius);
+    gradient.addColorStop(0, "rgba(128,225,244,.78)");
+    gradient.addColorStop(.38, "rgba(41,145,184,.58)");
+    gradient.addColorStop(1, "rgba(20,91,132,0)");
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.ellipse(source.x, source.y, radius * 1.2, radius * .55, -.08, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "rgba(170,225,245,.35)";
+    ctx.strokeStyle = "rgba(202,246,255,.46)";
     ctx.lineWidth = 2;
     for (let i = 0; i < 3; i++) {
       ctx.beginPath();
       ctx.arc(source.x, source.y, 20 + ((game.elapsed * 18 + i * 25) % Math.max(30, radius)), 0, Math.PI * 1.4);
       ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(218,250,255,.42)";
+    for (let i = 0; i < 7; i++) {
+      const angle = game.elapsed * .9 + i * 1.7;
+      const d = 12 + (i * 19) % Math.max(25, radius * .7);
+      ctx.beginPath(); ctx.arc(source.x + Math.cos(angle) * d, source.y + Math.sin(angle) * d * .35, 2 + i % 2, 0, Math.PI * 2); ctx.fill();
     }
   }
 
@@ -895,12 +1029,17 @@
   }
 
   function drawCone(x, y) {
-    ctx.fillStyle = "#1d2422";
-    ctx.fillRect(x - 11, y + 7, 22, 5);
-    ctx.fillStyle = "#ff7a22";
-    ctx.beginPath(); ctx.moveTo(x, y - 14); ctx.lineTo(x - 8, y + 8); ctx.lineTo(x + 8, y + 8); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = "#f4f0db";
-    ctx.fillRect(x - 5, y, 10, 4);
+    ctx.save();
+    ctx.fillStyle = "rgba(3,9,12,.4)";
+    ctx.beginPath(); ctx.ellipse(x + 3, y + 11, 15, 6, 0, 0, Math.PI * 2); ctx.fill();
+    fillRoundRect(x - 12, y + 6, 24, 6, 2, "#202b2d");
+    const cone = ctx.createLinearGradient(x - 8, y, x + 9, y);
+    cone.addColorStop(0, "#d74619"); cone.addColorStop(.5, "#ff8d2e"); cone.addColorStop(1, "#b83215");
+    ctx.fillStyle = cone;
+    ctx.beginPath(); ctx.moveTo(x, y - 17); ctx.lineTo(x - 8, y + 7); ctx.lineTo(x + 8, y + 7); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#fff1ce";
+    ctx.beginPath(); ctx.moveTo(x - 6, y - 1); ctx.lineTo(x + 5, y - 1); ctx.lineTo(x + 7, y + 3); ctx.lineTo(x - 7, y + 3); ctx.closePath(); ctx.fill();
+    ctx.restore();
   }
 
   function currentObjectiveTarget() {
@@ -949,50 +1088,87 @@
       ctx.setLineDash([]);
     }
 
-    ctx.strokeStyle = "rgba(255,210,82,.92)";
+    const glow = ctx.createRadialGradient(target.x, target.y, 2, target.x, target.y, pulse + 12);
+    glow.addColorStop(0, "rgba(255,224,104,.22)"); glow.addColorStop(1, "rgba(255,205,55,0)");
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(target.x, target.y, pulse + 12, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(255,220,82,.95)";
     ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(target.x, target.y, pulse, 0, Math.PI * 2); ctx.stroke();
-    ctx.font = "800 10px sans-serif";
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.arc(target.x, target.y, pulse, game.elapsed, game.elapsed + Math.PI * 1.65); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#ffd452";
+    ctx.beginPath();
+    ctx.moveTo(target.x, target.y - pulse - 6); ctx.lineTo(target.x - 6, target.y - pulse - 15); ctx.lineTo(target.x + 6, target.y - pulse - 15); ctx.closePath(); ctx.fill();
+    ctx.font = "900 10px ui-sans-serif, sans-serif";
     const labelWidth = ctx.measureText(target.label).width + 12;
-    ctx.fillStyle = "rgba(12,21,18,.84)";
-    ctx.fillRect(target.x - labelWidth / 2, target.y - pulse - 21, labelWidth, 16);
+    fillRoundRect(target.x - labelWidth / 2, target.y - pulse - 39, labelWidth, 18, 6, "rgba(8,17,22,.91)");
     ctx.fillStyle = "#ffd252";
-    ctx.fillText(target.label, target.x - labelWidth / 2 + 6, target.y - pulse - 9);
+    ctx.fillText(target.label, target.x - labelWidth / 2 + 6, target.y - pulse - 26);
   }
 
   function drawTruck() {
     const t = world.truck;
-    ctx.fillStyle = "rgba(0,0,0,.25)";
-    ctx.fillRect(t.x + 8, t.y + 12, t.w, t.h);
-    ctx.fillStyle = "#e7e0be";
-    ctx.fillRect(t.x, t.y, t.w, t.h);
-    ctx.fillStyle = "#d27c24";
-    ctx.fillRect(t.x, t.y, t.w, 12);
-    ctx.fillStyle = "#274f57";
-    ctx.fillRect(t.x + 104, t.y + 18, 36, 24);
-    ctx.fillStyle = "#202827";
-    ctx.beginPath(); ctx.arc(t.x + 30, t.y + t.h, 14, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(t.x + 118, t.y + t.h, 14, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#1a2825";
-    ctx.font = "900 14px sans-serif";
-    ctx.fillText("PUBLIC WORKS", t.x + 11, t.y + 39);
-    ctx.font = "700 11px sans-serif";
-    ctx.fillText("UNIT 12", t.x + 11, t.y + 56);
+    ctx.save();
+    ctx.shadowColor = "rgba(2,8,10,.56)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 10;
+    fillRoundRect(t.x, t.y + 4, t.w, t.h - 4, 13, "#d9d3bd");
+    ctx.shadowColor = "transparent";
+    const body = ctx.createLinearGradient(t.x, t.y, t.x, t.y + t.h);
+    body.addColorStop(0, "#fff4d5"); body.addColorStop(.62, "#d7d0b7"); body.addColorStop(1, "#a8a58f");
+    fillRoundRect(t.x, t.y, t.w, t.h - 7, 12, body);
+    ctx.fillStyle = "#df6a25";
+    ctx.beginPath(); ctx.roundRect(t.x, t.y, t.w, 15, [12, 12, 0, 0]); ctx.fill();
+    ctx.fillStyle = "#34464c";
+    ctx.beginPath(); ctx.roundRect(t.x + 101, t.y + 16, 42, 29, [5, 9, 4, 4]); ctx.fill();
+    ctx.fillStyle = "rgba(119,205,224,.45)";
+    ctx.beginPath(); ctx.roundRect(t.x + 106, t.y + 20, 31, 19, 3); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.48)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(t.x + 108, t.y + 22); ctx.lineTo(t.x + 125, t.y + 38); ctx.stroke();
+    ctx.fillStyle = "#17252a";
+    for (const wheelX of [t.x + 31, t.x + 119]) {
+      ctx.beginPath(); ctx.arc(wheelX, t.y + t.h - 2, 15, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#778185"; ctx.beginPath(); ctx.arc(wheelX, t.y + t.h - 2, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#17252a";
+    }
+    ctx.fillStyle = "#15282b";
+    ctx.font = "900 14px ui-sans-serif, sans-serif";
+    ctx.fillText("PUBLIC WORKS", t.x + 12, t.y + 38);
+    ctx.fillStyle = "#a44f1f";
+    ctx.font = "900 10px ui-sans-serif, sans-serif";
+    ctx.fillText("BELLWETHER · UNIT 12", t.x + 12, t.y + 54);
+    // Animated amber beacon and loaded equipment silhouette.
+    const flash = .45 + Math.sin(game.elapsed * 8) * .4;
+    ctx.fillStyle = `rgba(255,177,52,${flash})`;
+    ctx.shadowColor = "#ffad32"; ctx.shadowBlur = 12;
+    fillRoundRect(t.x + 72, t.y - 8, 17, 9, 4, `rgba(255,177,52,${flash})`);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "#253338"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(t.x + 21, t.y + 18); ctx.lineTo(t.x + 85, t.y + 18); ctx.stroke();
+    ctx.restore();
   }
 
   function drawTraffic() {
     for (const car of game.cars) {
       ctx.save();
       ctx.translate(car.x, car.drawY || car.y);
-      ctx.fillStyle = "rgba(0,0,0,.28)";
-      ctx.fillRect(-car.width / 2 + 4, -car.height / 2 + 5, car.width, car.height);
-      ctx.fillStyle = car.color;
-      ctx.fillRect(-car.width / 2, -car.height / 2, car.width, car.height);
-      ctx.fillStyle = "#23333a";
-      ctx.fillRect(-13, -car.height / 2 + 3, 26, car.height - 6);
-      ctx.fillStyle = "#fff2b3";
-      ctx.fillRect(car.dir > 0 ? 24 : -28, -9, 4, 6);
-      ctx.fillRect(car.dir > 0 ? 24 : -28, 3, 4, 6);
+      ctx.fillStyle = "rgba(1,7,10,.44)";
+      ctx.beginPath(); ctx.ellipse(4, 6, car.width * .56, car.height * .56, 0, 0, Math.PI * 2); ctx.fill();
+      const paint = ctx.createLinearGradient(0, -car.height / 2, 0, car.height / 2);
+      paint.addColorStop(0, "rgba(255,255,255,.42)"); paint.addColorStop(.2, car.color); paint.addColorStop(1, "#26343a");
+      fillRoundRect(-car.width / 2, -car.height / 2, car.width, car.height, 9, paint);
+      fillRoundRect(-14, -car.height / 2 + 4, 29, car.height - 8, 6, "#18313d");
+      ctx.fillStyle = "rgba(128,209,225,.35)";
+      ctx.beginPath(); ctx.roundRect(-10, -car.height / 2 + 6, 20, car.height - 12, 4); ctx.fill();
+      ctx.fillStyle = "#fff2ad";
+      ctx.shadowColor = "#ffe985"; ctx.shadowBlur = 8;
+      const nose = car.dir > 0 ? 24 : -28;
+      fillRoundRect(nose, -9, 5, 6, 2, "#fff2ad");
+      fillRoundRect(nose, 3, 5, 6, 2, "#fff2ad");
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#111d22";
+      ctx.fillRect(-17, -car.height / 2 - 2, 10, 4); ctx.fillRect(10, -car.height / 2 - 2, 10, 4);
+      ctx.fillRect(-17, car.height / 2 - 2, 10, 4); ctx.fillRect(10, car.height / 2 - 2, 10, 4);
       ctx.restore();
     }
   }
@@ -1000,72 +1176,127 @@
   function drawPlayer() {
     const p = game.player;
     if (p.hitCooldown > 0 && Math.floor(p.hitCooldown * 10) % 2 === 0) return;
-    ctx.fillStyle = "rgba(0,0,0,.3)";
-    ctx.beginPath(); ctx.ellipse(p.x + 3, p.y + 10, 15, 8, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#f4c19d";
-    ctx.beginPath(); ctx.arc(p.x, p.y - 9, 8, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#ffd252";
-    ctx.fillRect(p.x - 10, p.y - 2, 20, 22);
-    ctx.fillStyle = "#c66f24";
-    ctx.fillRect(p.x - 10, p.y + 7, 20, 5);
-    ctx.fillStyle = "#1e4560";
-    ctx.fillRect(p.x - 9, p.y + 20, 7, 11);
-    ctx.fillRect(p.x + 2, p.y + 20, 7, 11);
-    if (game.carrying === "cone") drawCone(p.x + 17, p.y + 2);
+    const moving = keys.has("KeyW") || keys.has("KeyA") || keys.has("KeyS") || keys.has("KeyD") || keys.has("ArrowUp") || keys.has("ArrowDown") || keys.has("ArrowLeft") || keys.has("ArrowRight");
+    const bob = moving ? Math.sin(game.elapsed * 13) * 1.8 : Math.sin(game.elapsed * 3) * .7;
+    const stride = moving ? Math.sin(game.elapsed * 13) * 4 : 0;
+    ctx.save();
+    ctx.translate(p.x, p.y + bob);
+    ctx.fillStyle = "rgba(1,7,10,.46)";
+    ctx.beginPath(); ctx.ellipse(4, 18, 17, 8, -.1, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#173448"; ctx.lineWidth = 7; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-5, 12); ctx.lineTo(-6 + stride, 28); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, 12); ctx.lineTo(6 - stride, 28); ctx.stroke();
+    ctx.strokeStyle = "#101c21"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(-10 + stride, 28); ctx.lineTo(-3 + stride, 28); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(2 - stride, 28); ctx.lineTo(10 - stride, 28); ctx.stroke();
+    const vest = ctx.createLinearGradient(-11, -3, 11, 17);
+    vest.addColorStop(0, "#ffe45d"); vest.addColorStop(.55, "#f7ad2e"); vest.addColorStop(1, "#d96a20");
+    fillRoundRect(-11, -4, 22, 23, 6, vest);
+    ctx.fillStyle = "#fff7bd";
+    ctx.fillRect(-9, 5, 18, 3); ctx.fillRect(-1, -3, 3, 21);
+    ctx.strokeStyle = "#db9d79"; ctx.lineWidth = 6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-10, 1); ctx.lineTo(-15, 13); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(15, 12); ctx.stroke();
+    ctx.fillStyle = "#d9a27f";
+    ctx.beginPath(); ctx.arc(0, -12, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#17242a";
+    ctx.beginPath(); ctx.arc(-3, -13, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -13, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#693d31"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, -10, 3, .15, Math.PI - .15); ctx.stroke();
+    ctx.fillStyle = "#ffd34f";
+    ctx.beginPath(); ctx.arc(0, -18, 10, Math.PI, Math.PI * 2); ctx.fill();
+    fillRoundRect(-12, -19, 24, 4, 2, "#e6a124");
+    if (game.carrying === "cone") drawCone(20, 1);
     if (game.carrying === "rake") {
       ctx.strokeStyle = "#d9c39b"; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(p.x + 10, p.y - 10); ctx.lineTo(p.x + 28, p.y + 28); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(10, -10); ctx.lineTo(28, 28); ctx.stroke();
       ctx.strokeStyle = "#303938"; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(p.x + 18, p.y + 27); ctx.lineTo(p.x + 38, p.y + 19); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(18, 27); ctx.lineTo(38, 19); ctx.stroke();
     }
     if (game.carrying === "clamp") {
       ctx.fillStyle = "#d6a52b";
-      ctx.fillRect(p.x + 12, p.y - 5, 27, 22);
+      ctx.fillRect(12, -5, 27, 22);
       ctx.fillStyle = "#2a3432";
-      ctx.fillRect(p.x + 16, p.y - 1, 19, 4);
+      ctx.fillRect(16, -1, 19, 4);
       ctx.strokeStyle = "#b9c2bd";
       ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(p.x + 26, p.y + 22, 10, .2, Math.PI * 1.7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(26, 22, 10, .2, Math.PI * 1.7); ctx.stroke();
     }
     if (game.carrying === "patch") {
       ctx.fillStyle = "#282f30";
-      ctx.fillRect(p.x + 12, p.y - 4, 28, 24);
+      ctx.fillRect(12, -4, 28, 24);
       ctx.fillStyle = "#e6d45b";
-      ctx.fillRect(p.x + 15, p.y, 22, 5);
+      ctx.fillRect(15, 0, 22, 5);
       ctx.fillStyle = "#8e9693";
-      ctx.beginPath(); ctx.arc(p.x + 28, p.y + 24, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(28, 24, 9, 0, Math.PI * 2); ctx.fill();
     }
     if (game.carrying === "locator") {
       ctx.fillStyle = "#e8b62e";
-      ctx.fillRect(p.x + 12, p.y - 5, 12, 19);
+      ctx.fillRect(12, -5, 12, 19);
       ctx.strokeStyle = "#232b29";
       ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(p.x + 18, p.y + 13); ctx.lineTo(p.x + 29, p.y + 30); ctx.stroke();
-      ctx.beginPath(); ctx.arc(p.x + 31, p.y + 32, 7, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(18, 13); ctx.lineTo(29, 30); ctx.stroke();
+      ctx.beginPath(); ctx.arc(31, 32, 7, 0, Math.PI * 2); ctx.stroke();
     }
+    ctx.restore();
   }
 
   function drawRain() {
-    ctx.strokeStyle = "rgba(170,220,238,.28)";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(184,230,245,.38)";
+    ctx.lineWidth = 1.25;
     ctx.beginPath();
     for (const drop of game.rain) {
-      ctx.moveTo(drop.x, drop.y); ctx.lineTo(drop.x - 5, drop.y + 15);
+      ctx.moveTo(drop.x, drop.y); ctx.lineTo(drop.x - 7, drop.y + 19);
     }
     ctx.stroke();
+    ctx.fillStyle = "rgba(192,235,247,.22)";
+    for (let i = 0; i < 14; i++) {
+      const x = (i * 127 + game.elapsed * 31) % W;
+      const y = 216 + (i * 43) % 168;
+      ctx.beginPath(); ctx.ellipse(x, y, 7, 2, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawAtmosphere() {
+    const dusk = ctx.createLinearGradient(0, 0, 0, H);
+    dusk.addColorStop(0, "rgba(13,44,53,.16)");
+    dusk.addColorStop(.55, "rgba(9,27,33,0)");
+    dusk.addColorStop(1, "rgba(3,12,16,.22)");
+    ctx.fillStyle = dusk;
+    ctx.fillRect(0, 0, W, H);
+
+    // Warm work-light pool around Unit 12.
+    const workLight = ctx.createRadialGradient(200, 484, 10, 200, 484, 145);
+    workLight.addColorStop(0, "rgba(255,190,75,.18)");
+    workLight.addColorStop(1, "rgba(255,176,56,0)");
+    ctx.fillStyle = workLight;
+    ctx.fillRect(45, 360, 310, 220);
+
+    const vignette = ctx.createRadialGradient(W / 2, H / 2, H * .25, W / 2, H / 2, W * .7);
+    vignette.addColorStop(.58, "rgba(3,10,14,0)");
+    vignette.addColorStop(1, "rgba(3,10,14,.43)");
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, W, H);
   }
 
   function drawHUD() {
     if (game.mode !== "playing") return;
-    ctx.fillStyle = "rgba(12,21,18,.88)";
-    ctx.fillRect(18, 18, 214, 54);
-    ctx.fillStyle = "#ffd252";
-    ctx.font = "800 12px sans-serif";
-    ctx.fillText(`RUNOFF ${Math.round(game.flood)}%`, 31, 40);
-    ctx.fillStyle = "#7ec8e3";
-    ctx.fillRect(31, 49, 186 * (game.flood / 100), 8);
-    ctx.strokeStyle = "#60746c";
-    ctx.strokeRect(31, 49, 186, 8);
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 15;
+    fillRoundRect(18, 18, 226, 62, 12, "rgba(8,23,28,.87)");
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(124,185,190,.35)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(18.5, 18.5, 225, 61, 12); ctx.stroke();
+    ctx.fillStyle = "#8dd5e1";
+    ctx.font = "900 10px ui-sans-serif, sans-serif";
+    ctx.fillText("SITE CONDITION", 32, 38);
+    ctx.fillStyle = "#f8edcf";
+    ctx.font = "900 17px ui-sans-serif, sans-serif";
+    ctx.fillText(`${game.jobType === "pothole" ? "FAILURE" : "RUNOFF"} ${Math.round(game.flood)}%`, 32, 59);
+    fillRoundRect(32, 66, 196, 5, 3, "rgba(105,133,139,.34)");
+    const hazardColor = game.flood > 70 ? "#ff6a5e" : game.flood > 45 ? "#ffc24d" : "#55d9d0";
+    fillRoundRect(32, 66, 196 * (game.flood / 100), 5, 3, hazardColor);
 
     const progress = {
       locate: [game.jobType === "water" ? "LEAK LOCATION" : game.jobType === "pothole" ? "SURFACE INSPECTION" : "UTILITY LOCATE", game.locateWork],
@@ -1073,33 +1304,40 @@
       verify: [game.jobType === "water" ? "PRESSURE TEST" : game.jobType === "pothole" ? "SURFACE TEST" : "FLOW VERIFICATION", game.verifyWork]
     }[game.step];
     if (progress && progress[1] > 0) {
-      ctx.fillStyle = "rgba(12,21,18,.9)";
-      ctx.fillRect(W / 2 - 130, H - 70, 260, 42);
-      ctx.fillStyle = "#f4f0db";
-      ctx.font = "700 11px sans-serif";
-      ctx.fillText(progress[0], W / 2 - 115, H - 52);
-      ctx.fillStyle = "#71d49b";
-      ctx.fillRect(W / 2 - 115, H - 44, 230 * (progress[1] / 100), 8);
+      fillRoundRect(W / 2 - 150, H - 78, 300, 52, 13, "rgba(7,20,25,.92)");
+      ctx.strokeStyle = "rgba(255,203,76,.42)";
+      ctx.beginPath(); ctx.roundRect(W / 2 - 149.5, H - 77.5, 299, 51, 13); ctx.stroke();
+      ctx.fillStyle = "#f8edcf";
+      ctx.font = "900 11px ui-sans-serif, sans-serif";
+      ctx.fillText(progress[0], W / 2 - 132, H - 57);
+      fillRoundRect(W / 2 - 132, H - 46, 264, 8, 4, "rgba(93,113,118,.4)");
+      fillRoundRect(W / 2 - 132, H - 46, 264 * (progress[1] / 100), 8, 4, "#58dbc2");
     }
 
     if (game.prompt) {
-      ctx.font = "800 15px sans-serif";
-      const width = ctx.measureText(game.prompt).width + 34;
-      ctx.fillStyle = "rgba(12,21,18,.9)";
-      ctx.fillRect(W / 2 - width / 2, 20, width, 38);
-      ctx.fillStyle = "#f4f0db";
-      ctx.fillText(game.prompt, W / 2 - width / 2 + 17, 45);
+      ctx.font = "900 14px ui-sans-serif, sans-serif";
+      const width = Math.min(520, ctx.measureText(game.prompt).width + 66);
+      fillRoundRect(W / 2 - width / 2, 20, width, 42, 12, "rgba(7,20,25,.94)");
+      fillRoundRect(W / 2 - width / 2 + 10, 29, 25, 24, 7, "#f2a832");
+      ctx.fillStyle = "#142229"; ctx.fillText("!", W / 2 - width / 2 + 20, 46);
+      ctx.fillStyle = "#f8edcf";
+      ctx.fillText(game.prompt, W / 2 - width / 2 + 44, 46);
     }
+    ctx.restore();
   }
 
   function drawPause() {
-    ctx.fillStyle = "rgba(8,14,12,.68)";
+    ctx.fillStyle = "rgba(3,12,16,.78)";
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#f4f0db";
+    const glow = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, 220);
+    glow.addColorStop(0, "rgba(240,164,47,.15)"); glow.addColorStop(1, "rgba(240,164,47,0)");
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#f8edcf";
     ctx.textAlign = "center";
-    ctx.font = "900 48px Impact, sans-serif";
+    ctx.font = "900 46px ui-sans-serif, sans-serif";
     ctx.fillText("SHIFT PAUSED", W / 2, H / 2);
-    ctx.font = "500 16px sans-serif";
+    ctx.fillStyle = "#9fb4b7";
+    ctx.font = "700 14px ui-sans-serif, sans-serif";
     ctx.fillText("Press P to return to work", W / 2, H / 2 + 30);
     ctx.textAlign = "left";
   }

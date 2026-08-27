@@ -238,7 +238,9 @@ Physics animation can wobble and collide, but critical state never depends on no
 
 ### Browser slice
 
-Top-down Canvas with flat, high-contrast shapes, chunky vehicles, reflective colors, labeled infrastructure, visible water spread, and rain. It is a systems sketch, not a promise of the final camera.
+Top-down Canvas presented as a stylized, rain-soaked municipal diorama. Layered gradients, raised curbs, chunky dimensional props, expressive crew animation, wet-road reflections, warm work lights, atmospheric grading, and readable effects approximate the intended 3D personality without external assets or a build step. Infrastructure remains clearly labeled and gameplay silhouettes take priority over decoration.
+
+The surrounding interface resembles a modernized municipal dispatch console: deep blue-green enamel and glass, safety-orange action surfaces, cyan system telemetry, rounded work-order cards, and strong type hierarchy. It should feel authored for a game while retaining the clarity of field equipment and city forms.
 
 ## 13. Audio direction
 
@@ -333,6 +335,8 @@ Build 0.8 adds a third pothole-collapse dispatch using the shared state grammar:
 Build 0.9 turns those conditions into a real dispatch choice. The job board previews the exact condition and hazard-pay rate for every open call. Difficult conditions pay 18–25% more on successful completion, while collision costs remain fixed. This creates a legible risk/reward decision using existing systems instead of a separate difficulty menu.
 
 Build 1.0 RC makes persistence visible at the moment of consequence. Every shift report includes a causal Today → Next Shift card. Careful, verified work visibly leaves the town in service; shortcuts name the exact saved callback—downstream flooding, diner outage, repeat main leak, or reopened pothole—before the player chooses another dispatch.
+
+Build 1.1 is the first full aesthetic pass. It replaces flat placeholder geometry and the document-like shell with a cohesive stylized diorama renderer and dispatch-console UI while leaving simulation coordinates, state transitions, scoring, persistence, and controls unchanged.
 
 ## 17. Browser technical approach
 
@@ -430,6 +434,7 @@ Detailed gates are in `BUILD_PREP.md`.
 | D-017 | Build 0.8 adds a pothole job and deterministic per-job condition rotation keyed by completed shift count. | Increases content breadth and replayability while keeping failures reproducible and testable. | 2026-08-25 |
 | D-018 | Build 0.9 exposes conditions on the dispatch board and ties them to 0–25% hazard-pay multipliers. | Makes job choice strategically meaningful while preserving legible causality and avoiding an abstract difficulty selector. | 2026-08-25 |
 | D-019 | Build 1.0 RC presents each completed job as an explicit Today → Next Shift causal chain. | The game's signature persistent civic consequence must be understood without reading a long summary or remembering hidden state. | 2026-08-25 |
+| D-020 | Build 1.1 adopts a rain-soaked, chunky municipal diorama and dispatch-console presentation using procedural Canvas art. | Delivers a cohesive game identity immediately while keeping the prototype dependency-free and preserving migration-friendly gameplay rules. | 2026-08-27 |
 
 ### Open questions
 
