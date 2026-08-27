@@ -34,11 +34,12 @@ Run `npm test` from the project root. There are no runtime dependencies and the 
 
 ## Current slice
 
-Choose between three dispatched calls at the same compact intersection:
+Choose between four dispatched calls at the same compact intersection:
 
 - **Storm drain flooding:** establish traffic control, locate the buried water service, clear or rush-flush the inlet, verify downstream flow, and avoid creating tomorrow’s blockage.
 - **Water main leak:** establish traffic control, locate the break, retrieve a valve key and clamp kit, isolate customer service, fit a permanent or temporary clamp, restore the valve, and pressure-test the repair.
 - **Pothole collapse:** establish traffic control, inspect the failed pavement and shallow utilities, retrieve cold patch and compactor, prepare and compact in lifts or dump-and-go, then verify crown and compaction.
+- **Fallen tree & wire:** establish an upper-lane taper, test and isolate the streetlight wire, mark trunk tension, retrieve chainsaw and winch, section the crown under control or yank-and-drag, then verify overhead and lane clearance.
 
 All calls include equipment fetching, live traffic, escalating site conditions, cone recovery, return-to-truck closeout, separate Safety/Service/Quality scores, job counts, and persistent civic callbacks. Each shift deterministically rotates through job-specific weather, pressure, pavement, and traffic modifiers. Dispatch previews the risks before you choose; harder conditions award up to 25% hazard pay, but traffic incident costs are never discounted.
 
@@ -50,7 +51,9 @@ Build 1.2 makes traffic control physically meaningful. Each job has a deliberate
 
 Build 1.3 closes the remaining setup gap: the first placed cone activates avoidance immediately, so vehicles never drive through a deployed cone while the rest of the taper is being assembled. Cone layouts and routing share one tested data source, with at least 30 Canvas units of vehicle/cone clearance. A deterministic `?qaTraffic=drain`, `water`, or `pothole` runtime scenario exposes pass, collision, safety, and minimum-clearance telemetry for repeatable browser playtesting; `&qaCones=1` or `2` validates incomplete setup states.
 
-Successful shifts earn department budget and town trust; incidents and failed calls cost both. Persistent drain, water, and road completions raise crew rank, and the title screen offers a $500 quick-load rack upgrade that improves field movement and reduces time-pressure loss.
+Build 1.4 adds the fallen-tree dispatch as a fourth complete systemic call. The tree and live-looking overhead wire are visible physical hazards; controlled cutting progressively removes the crown and moves logs to the shoulder. Rushing creates a saved hanging-limb callback that weakens the next tree shift. The traffic QA scenario now also accepts `?qaTraffic=tree`.
+
+Successful shifts earn department budget and town trust; incidents and failed calls cost both. Persistent drain, water, road, and tree completions raise crew rank, and the title screen offers a $500 quick-load rack upgrade that improves field movement and reduces time-pressure loss.
 
 ## Canonical repository and deployment policy
 

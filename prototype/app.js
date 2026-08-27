@@ -30,6 +30,7 @@
     startButton: document.querySelector("#startButton"),
     waterButton: document.querySelector("#waterButton"),
     potholeButton: document.querySelector("#potholeButton"),
+    treeButton: document.querySelector("#treeButton"),
     upgradeButton: document.querySelector("#upgradeButton"),
     againButton: document.querySelector("#againButton"),
     resetButton: document.querySelector("#resetButton"),
@@ -57,7 +58,8 @@
   const JOB_BOARD = {
     drain: { number: "14-07", name: "Storm drain flooding" },
     water: { number: "14-08", name: "Water main leak" },
-    pothole: { number: "14-09", name: "Pothole collapse" }
+    pothole: { number: "14-09", name: "Pothole collapse" },
+    tree: { number: "14-10", name: "Fallen tree & wire" }
   };
   const W = canvas.width;
   const H = canvas.height;
@@ -75,7 +77,8 @@
     utility: { x: 724, y: 405 },
     valve: { x: 792, y: 448 },
     waterLeak: { x: 794, y: 348 },
-    pothole: { x: 690, y: 275 }
+    pothole: { x: 690, y: 275 },
+    tree: { x: 705, y: 275 }
   };
 
   const trafficTemplate = [
@@ -184,9 +187,11 @@
     const scores = createInitialScores(history);
     const waterJob = jobType === "water";
     const potholeJob = jobType === "pothole";
+    const treeJob = jobType === "tree";
     const callbackActive = waterJob
       ? history.weakClamp || history.waterOutage
-      : potholeJob ? history.failedPatch || history.waterOutage : history.downstreamClog || history.waterOutage;
+      : potholeJob ? history.failedPatch || history.waterOutage
+        : treeJob ? history.hangingLimb || history.waterOutage : history.downstreamClog || history.waterOutage;
     const modifier = shiftModifier(jobType, history.shifts);
     return {
       jobType,
@@ -198,7 +203,8 @@
       gradeReason: callbackActive ? "Yesterday's callback has weakened today's opening position." : "Call received. The clock is running.",
       flood: waterJob
         ? (history.weakClamp ? 38 : 20)
-        : potholeJob ? (history.failedPatch ? 35 : 16) : (history.downstreamClog ? 34 : 18),
+        : potholeJob ? (history.failedPatch ? 35 : 16)
+          : treeJob ? (history.hangingLimb ? 38 : 18) : (history.downstreamClog ? 34 : 18),
       work: 0,
       locateWork: 0,
       verifyWork: 0,
@@ -304,7 +310,8 @@
     if ((!repairRestored && game.flood >= 100) || game.grade <= 20) {
       finish(false, game.jobType === "water"
         ? "The main break flooded Grand Avenue before the crew restored control."
-        : game.jobType === "pothole" ? "Traffic enlarged the pavement failure before the crew stabilized it." : "The intersection flooded before the drain was restored.");
+        : game.jobType === "pothole" ? "Traffic enlarged the pavement failure before the crew stabilized it."
+          : game.jobType === "tree" ? "Wind shifted the suspended trunk into the energized streetlight line." : "The intersection flooded before the drain was restored.");
     }
     syncUI();
   }
@@ -377,8 +384,9 @@
     const atTruck = distance(game.player, { x: 188, y: 474 }) < 94;
     const waterJob = game.jobType === "water";
     const potholeJob = game.jobType === "pothole";
-    const repairTarget = waterJob ? world.waterLeak : potholeJob ? world.pothole : world.drain;
-    const locateTarget = waterJob ? world.waterLeak : potholeJob ? world.pothole : world.utility;
+    const treeJob = game.jobType === "tree";
+    const repairTarget = waterJob ? world.waterLeak : potholeJob ? world.pothole : treeJob ? world.tree : world.drain;
+    const locateTarget = waterJob ? world.waterLeak : potholeJob ? world.pothole : treeJob ? world.tree : world.utility;
     const atRepair = distance(game.player, repairTarget) < 52;
     const atLocate = distance(game.player, locateTarget) < 56;
     const atValve = distance(game.player, world.valve) < 46;
@@ -408,19 +416,24 @@
           advanceJob("locator_taken");
           game.gradeReason = waterJob
             ? "Trace the leaking main before isolating or clamping it."
-            : potholeJob ? "Inspect the failed pavement and check the shallow utility map." : "Locate the blue water service before using a steel rake.";
+            : potholeJob ? "Inspect the failed pavement and check the shallow utility map."
+              : treeJob ? "Check trunk tension and confirm the streetlight wire is de-energized." : "Locate the blue water service before using a steel rake.";
         }
       } else {
         game.prompt = "Return to Unit 12 for the utility locator";
       }
     } else if (game.step === "locate") {
       if (!atLocate) {
-        game.prompt = waterJob ? "Bring the locator to the bubbling pavement" : potholeJob ? "Bring the inspection wand to the collapsed pavement" : "Bring the locator to the pulsing utility mark";
+        game.prompt = waterJob ? "Bring the locator to the bubbling pavement"
+          : potholeJob ? "Bring the inspection wand to the collapsed pavement"
+            : treeJob ? "Bring the voltage detector to the fallen trunk" : "Bring the locator to the pulsing utility mark";
       } else {
-        game.prompt = "Hold E · Sweep for buried service";
+        game.prompt = waterJob ? "Hold E · Trace leaking main" : potholeJob ? "Hold E · Inspect failure and utilities" : treeJob ? "Hold E · Test wire and mark trunk tension" : "Hold E · Sweep for buried service";
         if (keys.has("KeyE")) {
           game.locateWork = clamp(game.locateWork + 34 * dt, 0, 100);
-          game.gradeReason = `Tracing buried water service… ${Math.floor(game.locateWork)}%`;
+          game.gradeReason = waterJob ? `Tracing leaking water main… ${Math.floor(game.locateWork)}%`
+            : potholeJob ? `Inspecting failed pavement… ${Math.floor(game.locateWork)}%`
+              : treeJob ? `Testing wire and reading trunk tension… ${Math.floor(game.locateWork)}%` : `Tracing buried water service… ${Math.floor(game.locateWork)}%`;
           if (game.locateWork >= 100) {
             cue("locate");
             game.utilityMarked = true;
@@ -428,38 +441,49 @@
             advanceJob("utility_marked");
             game.gradeReason = waterJob
               ? "Leak and main marked. Retrieve the valve key and clamp kit."
-              : potholeJob ? "Failed edges and shallow water service marked. Retrieve patch and compactor." : "Water service marked in blue. Steel tools may stay west of the line.";
+              : potholeJob ? "Failed edges and shallow water service marked. Retrieve patch and compactor."
+                : treeJob ? "Wire is de-energized and trunk tension marked. Retrieve saw and winch." : "Water service marked in blue. Steel tools may stay west of the line.";
           }
         }
       }
     } else if (game.step === "tool") {
       if (atTruck) {
-        game.prompt = waterJob ? "E · Take valve key and clamp kit" : potholeJob ? "E · Take cold patch and compactor" : "E · Take drain rake";
+        game.prompt = waterJob ? "E · Take valve key and clamp kit"
+          : potholeJob ? "E · Take cold patch and compactor"
+            : treeJob ? "E · Take chainsaw and winch" : "E · Take drain rake";
         if (justPressed.has("KeyE")) {
-          game.carrying = waterJob ? "clamp" : potholeJob ? "patch" : "rake";
+          game.carrying = waterJob ? "clamp" : potholeJob ? "patch" : treeJob ? "saw" : "rake";
           cue("pickup");
           game.toolRetrieved = true;
           advanceJob("tool_taken");
           game.gradeReason = waterJob
             ? "Close the marked valve, then clamp the leaking main."
-            : potholeJob ? "Clean the failed edges, place patch, and compact it in lifts." : "Work zone secured. Clear the inlet before it overtops.";
+            : potholeJob ? "Clean the failed edges, place patch, and compact it in lifts."
+              : treeJob ? "Cut from the unloaded crown inward, then winch the trunk clear." : "Work zone secured. Clear the inlet before it overtops.";
         }
       } else {
-        game.prompt = waterJob ? "Return to Unit 12 for the clamp kit" : potholeJob ? "Return to Unit 12 for patch and compactor" : "Return to Unit 12 for the drain rake";
+        game.prompt = waterJob ? "Return to Unit 12 for the clamp kit"
+          : potholeJob ? "Return to Unit 12 for patch and compactor"
+            : treeJob ? "Return to Unit 12 for chainsaw and winch" : "Return to Unit 12 for the drain rake";
       }
     } else if (game.step === "clear") {
       if (waterJob && !game.waterValveClosed) {
         game.prompt = "Isolate the main at the blue valve box before clamping";
       } else if (!atRepair) {
-        game.prompt = waterJob ? "Bring the clamp kit to the bubbling pavement" : potholeJob ? "Bring patch and compactor to the marked failure" : "Bring the drain rake to the flashing inlet";
+        game.prompt = waterJob ? "Bring the clamp kit to the bubbling pavement"
+          : potholeJob ? "Bring patch and compactor to the marked failure"
+            : treeJob ? "Bring saw and winch to the marked trunk" : "Bring the drain rake to the flashing inlet";
       } else {
-        game.prompt = waterJob ? "Hold E · Fit permanent clamp   |   R · Temporary patch" : potholeJob ? "Hold E · Layer and compact   |   R · Dump-and-go patch" : "Hold E · Clear carefully   |   R · Rush flush";
+        game.prompt = waterJob ? "Hold E · Fit permanent clamp   |   R · Temporary patch"
+          : potholeJob ? "Hold E · Layer and compact   |   R · Dump-and-go patch"
+            : treeJob ? "Hold E · Section and winch   |   R · Yank trunk" : "Hold E · Clear carefully   |   R · Rush flush";
         if (keys.has("KeyE")) {
-          game.work = clamp(game.work + (waterJob ? 18 : potholeJob ? 20 : 23) * dt, 0, 100);
+          game.work = clamp(game.work + (waterJob ? 18 : potholeJob ? 20 : treeJob ? 17 : 23) * dt, 0, 100);
           game.flood = clamp(game.flood - (waterJob ? 7.5 : 5.5) * dt, 0, 100);
           game.gradeReason = waterJob
             ? `Aligning and tightening permanent clamp… ${Math.floor(game.work)}%`
-            : potholeJob ? `Layering and compacting cold patch… ${Math.floor(game.work)}%` : `Clearing debris carefully… ${Math.floor(game.work)}%`;
+            : potholeJob ? `Layering and compacting cold patch… ${Math.floor(game.work)}%`
+              : treeJob ? `Sectioning crown and winching trunk… ${Math.floor(game.work)}%` : `Clearing debris carefully… ${Math.floor(game.work)}%`;
           if (game.work >= 100) completeRepair(false);
         }
         if (justPressed.has("KeyR")) {
@@ -471,15 +495,16 @@
       if (waterJob && game.waterValveClosed) {
         game.prompt = "Reopen the water valve before pressure testing";
       } else if (!atRepair) {
-        game.prompt = waterJob ? "Return to the clamp and pressure-test the repair" : potholeJob ? "Return with the straightedge and verify the surface" : "Return to the inlet and verify downstream flow";
+        game.prompt = waterJob ? "Return to the clamp and pressure-test the repair" : potholeJob ? "Return with the straightedge and verify the surface" : treeJob ? "Return to the trunk and verify crown and wire clearance" : "Return to the inlet and verify downstream flow";
       } else {
-        game.prompt = waterJob ? "Hold E · Pressure-test clamp" : potholeJob ? "Hold E · Check crown and compaction" : "Hold E · Verify flow and rake bars";
+        game.prompt = waterJob ? "Hold E · Pressure-test clamp" : potholeJob ? "Hold E · Check crown and compaction" : treeJob ? "Hold E · Inspect crown, wire, and lane" : "Hold E · Verify flow and rake bars";
         if (keys.has("KeyE")) {
           game.verifyWork = clamp(game.verifyWork + 42 * dt, 0, 100);
           game.flood = clamp(game.flood - 11 * dt, 0, 100);
           game.gradeReason = waterJob
             ? `Pressure-testing repaired main… ${Math.floor(game.verifyWork)}%`
-            : potholeJob ? `Checking surface crown and compaction… ${Math.floor(game.verifyWork)}%` : `Testing drainage flow… ${Math.floor(game.verifyWork)}%`;
+            : potholeJob ? `Checking surface crown and compaction… ${Math.floor(game.verifyWork)}%`
+              : treeJob ? `Checking overhead clearance and remaining limbs… ${Math.floor(game.verifyWork)}%` : `Testing drainage flow… ${Math.floor(game.verifyWork)}%`;
           if (game.verifyWork >= 100) {
             cue("verify");
             game.flowVerified = true;
@@ -487,7 +512,8 @@
             advanceJob("flow_verified");
             game.gradeReason = waterJob
               ? "Pressure stable and service restored. Recover cones before reopening Grand Avenue."
-              : potholeJob ? "Patch is level and compacted. Recover cones before reopening Grand Avenue." : "Flow verified. Recover all cones before reopening Grand Avenue.";
+              : potholeJob ? "Patch is level and compacted. Recover cones before reopening Grand Avenue."
+                : treeJob ? "Crown, wire, and travel lane verified clear. Recover cones before reopening." : "Flow verified. Recover all cones before reopening Grand Avenue.";
           }
         }
       }
@@ -515,9 +541,13 @@
               : "The main is clamped, pressure is stable, and customer service is restored.")
             : potholeJob
               ? (game.rushed ? "The street reopened over an untested dump-and-go patch." : "The pothole is layered, compacted, level, and ready for traffic.")
-            : (game.rushed
-              ? "The street reopened, but the unverified rush flush lodged debris downstream."
-              : "The drain is flowing, utilities are intact, and Grand Avenue is safely reopened.");
+            : treeJob
+              ? (game.rushed
+                ? "The lane reopened after a yank-and-drag removal, but a hanging limb remains above the wire."
+                : "The tree is sectioned, the wire is safe, and the travel lane is clear.")
+              : (game.rushed
+                ? "The street reopened, but the unverified rush flush lodged debris downstream."
+                : "The drain is flowing, utilities are intact, and Grand Avenue is safely reopened.");
           finish(true, summary);
         }
       } else {
@@ -557,14 +587,16 @@
       cue("alert");
       penalize("quality", 36, game.jobType === "water"
         ? "Temporary clamp used: repair skipped torque and pressure verification."
-        : game.jobType === "pothole" ? "Dump-and-go patch skipped edge prep, lifts, and compaction." : "Rush flush used: debris moved downstream without a flow test.");
+        : game.jobType === "pothole" ? "Dump-and-go patch skipped edge prep, lifts, and compaction."
+          : game.jobType === "tree" ? "Yank-and-drag skipped controlled cuts and overhead clearance." : "Rush flush used: debris moved downstream without a flow test.");
       advanceJob("repair_rushed");
     } else {
       cue("repair");
       advanceJob("repair_careful");
       game.gradeReason = game.jobType === "water"
         ? "Clamp installed. Reopen the valve and pressure-test before cleanup."
-        : game.jobType === "pothole" ? "Patch placed. Verify crown and compaction before cleanup." : "Blockage removed. Verify flow before reopening the street.";
+        : game.jobType === "pothole" ? "Patch placed. Verify crown and compaction before cleanup."
+          : game.jobType === "tree" ? "Trunk cleared. Verify crown and overhead wire before cleanup." : "Blockage removed. Verify flow before reopening the street.";
     }
   }
 
@@ -622,9 +654,11 @@
     history.waterOutage = outcome.waterOutage;
     history.weakClamp = outcome.weakClamp;
     history.failedPatch = outcome.failedPatch;
+    history.hangingLimb = outcome.hangingLimb;
     if (success && game.jobType === "water") history.waterJobs += 1;
     if (success && game.jobType === "drain") history.drainJobs += 1;
     if (success && game.jobType === "pothole") history.potholeJobs += 1;
+    if (success && game.jobType === "tree") history.treeJobs += 1;
     history.lastResult = outcome.lastResult;
     history.bestGrade = bestGrade(history.bestGrade, letter);
     history.budget = economy.budget;
@@ -632,7 +666,7 @@
     saveHistory();
 
     ui.endTitle.textContent = success ? `Service grade: ${letter}` : "Call failed";
-    const callbackSaved = outcome.downstreamClog || outcome.waterOutage || outcome.weakClamp || outcome.failedPatch;
+    const callbackSaved = outcome.downstreamClog || outcome.waterOutage || outcome.weakClamp || outcome.failedPatch || outcome.hangingLimb;
     const consequence = consequenceReport(outcome);
     ui.endSummary.textContent = `${summary} Response ${formatTime(game.elapsed)}; ${game.collisions} traffic incident${game.collisions === 1 ? "" : "s"}.` + (callbackSaved ? " This callback is saved for the next shift." : "");
     ui.endConsequence.classList.toggle("callback", consequence.callback);
@@ -659,6 +693,7 @@
   function syncUI() {
     const waterJob = game.jobType === "water";
     const potholeJob = game.jobType === "pothole";
+    const treeJob = game.jobType === "tree";
     const score = Math.round(game.grade);
     const color = gradeColor(score);
     ui.grade.textContent = gradeLetter(score);
@@ -669,10 +704,10 @@
     const objective = {
       cones: game.carrying === "cone" ? "Place the cone on a striped marker" : "Build a three-cone traffic taper",
       locator: "Fetch the utility locator from Unit 12",
-      locate: waterJob ? "Locate the leaking water main" : potholeJob ? "Inspect and mark the pavement failure" : "Mark the buried water service",
-      tool: waterJob ? "Fetch the clamp kit from Unit 12" : potholeJob ? "Fetch patch and compactor" : "Fetch the drain rake from Unit 12",
-      clear: waterJob ? "Isolate and clamp the water main" : potholeJob ? "Prepare, fill, and compact the pothole" : "Clear the flooded storm drain",
-      verify: waterJob ? "Restore service and pressure-test" : potholeJob ? "Verify crown and compaction" : "Verify downstream drainage flow",
+      locate: waterJob ? "Locate the leaking water main" : potholeJob ? "Inspect and mark the pavement failure" : treeJob ? "Check trunk tension and overhead wire" : "Mark the buried water service",
+      tool: waterJob ? "Fetch the clamp kit from Unit 12" : potholeJob ? "Fetch patch and compactor" : treeJob ? "Fetch chainsaw and winch" : "Fetch the drain rake from Unit 12",
+      clear: waterJob ? "Isolate and clamp the water main" : potholeJob ? "Prepare, fill, and compact the pothole" : treeJob ? "Section and winch the fallen tree" : "Clear the flooded storm drain",
+      verify: waterJob ? "Restore service and pressure-test" : potholeJob ? "Verify crown and compaction" : treeJob ? "Verify crown, wire, and lane clearance" : "Verify downstream drainage flow",
       cleanup: "Recover the traffic-control equipment",
       return: "Return to Unit 12 and close the order",
       done: game.result === "complete" ? "Work order closed" : "Dispatch escalation required"
@@ -681,15 +716,15 @@
 
     const tasks = [
       ["Place three traffic cones", game.zoneSecured],
-      [waterJob ? "Locate leaking water main" : potholeJob ? "Inspect pavement failure" : "Locate buried water service", game.utilityMarked],
-      [waterJob ? "Retrieve clamp kit" : potholeJob ? "Retrieve patch and compactor" : "Retrieve drain rake", game.toolRetrieved],
-      [waterJob ? "Clamp main" : potholeJob ? "Fill and compact pothole" : "Restore drainage", game.repairRestored],
-      [waterJob ? "Restore and pressure-test" : potholeJob ? "Verify surface" : "Verify flow", game.flowVerified],
+      [waterJob ? "Locate leaking water main" : potholeJob ? "Inspect pavement failure" : treeJob ? "Mark trunk tension and wire" : "Locate buried water service", game.utilityMarked],
+      [waterJob ? "Retrieve clamp kit" : potholeJob ? "Retrieve patch and compactor" : treeJob ? "Retrieve saw and winch" : "Retrieve drain rake", game.toolRetrieved],
+      [waterJob ? "Clamp main" : potholeJob ? "Fill and compact pothole" : treeJob ? "Section and winch tree" : "Restore drainage", game.repairRestored],
+      [waterJob ? "Restore and pressure-test" : potholeJob ? "Verify surface" : treeJob ? "Verify overhead clearance" : "Verify flow", game.flowVerified],
       ["Reopen street", game.result === "complete"]
     ];
     ui.checklist.innerHTML = tasks.map(([label, done]) => `<li class="${done ? "done" : ""}">${label}</li>`).join("");
     ui.townState.innerHTML = `
-      <span>Runoff level <strong>${Math.round(game.flood)}%</strong></span>
+      <span>${treeJob ? "Tree instability" : potholeJob ? "Failure spread" : "Runoff level"} <strong>${Math.round(game.flood)}%</strong></span>
       <span>Traffic <strong>${game.conesPlaced.length === 0 ? "Live" : game.zoneSecured ? "Diverted" : "Merging"}</strong></span>
       <span>Water service <strong>${!game.utilityMarked ? "Unknown" : game.waterValveClosed ? "OFF" : "Marked · ON"}</strong></span>
       <span>Safety / Service / Quality <strong>${Math.round(game.scores.safety)} / ${Math.round(game.scores.service)} / ${Math.round(game.scores.quality)}</strong></span>
@@ -697,9 +732,9 @@
       <span>Shift condition <strong>${game.modifier.label}</strong></span>
       <span>Hazard pay <strong>${hazardPayLabel(game.modifier)}</strong></span>
       <span>Department budget <strong>$${history.budget}</strong></span>
-      <span>Town trust / Crew rank <strong>${history.trust} / ${1 + Math.floor((history.drainJobs + history.waterJobs + history.potholeJobs) / 3)}</strong></span>
+      <span>Town trust / Crew rank <strong>${history.trust} / ${1 + Math.floor((history.drainJobs + history.waterJobs + history.potholeJobs + history.treeJobs) / 3)}</strong></span>
       <span>Quick-load rack <strong>${history.rackUpgrade ? "Installed" : "Stock"}</strong></span>
-      <span>Completed drain / water / road calls <strong>${history.drainJobs} / ${history.waterJobs} / ${history.potholeJobs}</strong></span>
+      <span>Completed drain / water / road / tree calls <strong>${history.drainJobs} / ${history.waterJobs} / ${history.potholeJobs} / ${history.treeJobs}</strong></span>
       <span>Prior shifts <strong>${history.shifts}</strong></span>
       ${qaTrafficJob ? `<span id="qaTrafficStatus">QA passes / collisions <strong>${game.trafficPasses} / ${game.collisions}</strong></span>
       <span>QA cone / crew clearance <strong>${Number.isFinite(game.minConeClearance) ? game.minConeClearance.toFixed(1) : "waiting"} / ${Number.isFinite(game.minCrewClearance) ? game.minCrewClearance.toFixed(1) : "waiting"}</strong></span>` : ""}`;
@@ -891,6 +926,83 @@
   }
 
   function drawFlood() {
+    if (game.jobType === "tree") {
+      const t = world.tree;
+      const cleared = game.repairRestored;
+      const cutProgress = game.work / 100;
+      ctx.save();
+      ctx.lineCap = "round";
+
+      // Streetlight wire: lively hazard until the detector confirms isolation.
+      ctx.strokeStyle = game.utilityMarked ? "#4f7982" : "#182125";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(810, 198);
+      ctx.quadraticCurveTo(760, 242, 688, cleared ? 233 : 279);
+      ctx.stroke();
+      if (!game.utilityMarked && !cleared) {
+        const sparkX = 709 + Math.sin(game.elapsed * 9) * 4;
+        const sparkY = 267 + Math.cos(game.elapsed * 11) * 3;
+        ctx.strokeStyle = "#ffd65c";
+        ctx.shadowColor = "#ffbd37";
+        ctx.shadowBlur = 12;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(sparkX, sparkY);
+          ctx.lineTo(sparkX + Math.cos(i * 2.1 + game.elapsed * 6) * 13, sparkY + Math.sin(i * 2.1 + game.elapsed * 6) * 13);
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+      }
+
+      if (!cleared) {
+        const remaining = Math.max(.18, 1 - cutProgress * .82);
+        ctx.strokeStyle = "rgba(4,10,11,.45)";
+        ctx.lineWidth = 23;
+        ctx.beginPath(); ctx.moveTo(618, 290); ctx.lineTo(790, 254); ctx.stroke();
+        const bark = ctx.createLinearGradient(620, 260, 790, 290);
+        bark.addColorStop(0, "#49311f"); bark.addColorStop(.5, "#795132"); bark.addColorStop(1, "#372519");
+        ctx.strokeStyle = bark;
+        ctx.lineWidth = 18;
+        ctx.beginPath(); ctx.moveTo(618, 284); ctx.lineTo(790 - cutProgress * 90, 258 + cutProgress * 14); ctx.stroke();
+        ctx.strokeStyle = "#664329";
+        ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.moveTo(696, 272); ctx.lineTo(662, 238); ctx.moveTo(744, 264); ctx.lineTo(770, 232); ctx.stroke();
+        const crownX = 790 - cutProgress * 70;
+        const crownY = 252 + cutProgress * 8;
+        for (let i = 0; i < 9; i++) {
+          const a = i * 2.39;
+          const radius = (19 + (i % 3) * 5) * remaining;
+          ctx.fillStyle = i % 2 ? "#315c3b" : "#477345";
+          ctx.beginPath();
+          ctx.arc(crownX + Math.cos(a) * 27 * remaining, crownY + Math.sin(a) * 22 * remaining, Math.max(7, radius), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.strokeStyle = game.utilityMarked ? "#54d5ce" : "#ffcf4c";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath(); ctx.arc(t.x, t.y, 37, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        // Cleared logs visibly move to the shoulder as the lane reopens.
+        for (let i = 0; i < 4; i++) {
+          ctx.fillStyle = i % 2 ? "#67432a" : "#795235";
+          fillRoundRect(624 + i * 31, 226 + (i % 2) * 7, 27, 14, 6, ctx.fillStyle);
+          ctx.fillStyle = "#b88a56";
+          ctx.beginPath(); ctx.arc(650 + i * 31, 233 + (i % 2) * 7, 6, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      if (history.hangingLimb && !game.flowVerified) {
+        ctx.strokeStyle = "#5a3822";
+        ctx.lineWidth = 9;
+        ctx.beginPath(); ctx.moveTo(738, 217); ctx.lineTo(704, 245); ctx.stroke();
+        ctx.fillStyle = "#436c3f";
+        ctx.beginPath(); ctx.arc(739, 214, 18, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+      return;
+    }
     if (game.jobType === "pothole") {
       const size = 17 + game.flood * .32;
       ctx.save();
@@ -947,9 +1059,9 @@
   function drawWorkZone() {
     const coneTargets = activeConeTargets();
     if (game.conesPlaced.length > 0) {
-      const pothole = game.jobType === "pothole";
-      const baseY = pothole ? 267 : 330;
-      const routeY = pothole ? 222 : 294;
+      const upperLaneJob = game.jobType === "pothole" || game.jobType === "tree";
+      const baseY = upperLaneJob ? 267 : 330;
+      const routeY = upperLaneJob ? 222 : 294;
       const fullySecured = game.zoneSecured && game.conesPlaced.length === coneTargets.length;
       ctx.save();
       ctx.strokeStyle = fullySecured ? "rgba(105,220,218,.55)" : "rgba(255,195,72,.42)";
@@ -963,7 +1075,7 @@
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = "rgba(105,220,218,.58)";
-      const arrowDirection = pothole ? 1 : -1;
+      const arrowDirection = upperLaneJob ? 1 : -1;
       for (const x of [505, 760]) {
         ctx.beginPath();
         ctx.moveTo(x + 9 * arrowDirection, routeY);
@@ -1020,6 +1132,9 @@
       if (game.jobType === "water") {
         ctx.moveTo(world.waterLeak.x, world.waterLeak.y);
         ctx.lineTo(world.valve.x, world.valve.y);
+      } else if (game.jobType === "tree") {
+        ctx.moveTo(810, 198);
+        ctx.lineTo(world.tree.x, world.tree.y);
       } else {
         ctx.moveTo(world.utility.x, 340);
         ctx.lineTo(world.utility.x, 480);
@@ -1028,11 +1143,11 @@
       ctx.setLineDash([]);
       ctx.fillStyle = "#259cdc";
       ctx.font = "800 10px sans-serif";
-      ctx.fillText("W", game.jobType === "water" ? world.waterLeak.x - 4 : world.utility.x - 4, game.jobType === "water" ? world.waterLeak.y - 18 : 385);
+      ctx.fillText(game.jobType === "tree" ? "LINE SAFE" : "W", game.jobType === "water" ? world.waterLeak.x - 4 : game.jobType === "tree" ? world.tree.x - 24 : world.utility.x - 4, game.jobType === "water" ? world.waterLeak.y - 18 : game.jobType === "tree" ? world.tree.y - 48 : 385);
     }
 
     if (game.step === "locate") {
-      const locateTarget = game.jobType === "water" ? world.waterLeak : game.jobType === "pothole" ? world.pothole : world.utility;
+      const locateTarget = game.jobType === "water" ? world.waterLeak : game.jobType === "pothole" ? world.pothole : game.jobType === "tree" ? world.tree : world.utility;
       ctx.strokeStyle = `rgba(255,210,82,${.55 + Math.sin(game.elapsed * 5) * .35})`;
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(locateTarget.x, locateTarget.y, 34, 0, Math.PI * 2); ctx.stroke();
@@ -1077,6 +1192,11 @@
       ctx.strokeStyle = `rgba(255,210,82,${.55 + Math.sin(game.elapsed * 5) * .35})`;
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(world.pothole.x, world.pothole.y, 36, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (game.jobType === "tree" && (game.step === "clear" || game.step === "verify")) {
+      ctx.strokeStyle = `rgba(255,210,82,${.55 + Math.sin(game.elapsed * 5) * .35})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(world.tree.x, world.tree.y, 42, 0, Math.PI * 2); ctx.stroke();
     }
 
     ctx.fillStyle = "#1684aa";
@@ -1125,14 +1245,15 @@
     if (["locator", "tool", "return"].includes(game.step)) return { x: 188, y: 474, label: "UNIT 12" };
     if (game.step === "locate") return game.jobType === "water"
       ? { ...world.waterLeak, label: "LOCATE LEAK" }
-      : game.jobType === "pothole" ? { ...world.pothole, label: "INSPECT FAILURE" } : { ...world.utility, label: "UTILITY SWEEP" };
+      : game.jobType === "pothole" ? { ...world.pothole, label: "INSPECT FAILURE" }
+        : game.jobType === "tree" ? { ...world.tree, label: "TEST WIRE" } : { ...world.utility, label: "UTILITY SWEEP" };
     if (game.step === "clear") {
       if (game.jobType === "water" && !game.waterValveClosed) return { ...world.valve, label: "ISOLATE VALVE" };
-      return game.jobType === "water" ? { ...world.waterLeak, label: "CLAMP MAIN" } : game.jobType === "pothole" ? { ...world.pothole, label: "COMPACT PATCH" } : { ...world.drain, label: "STORM INLET" };
+      return game.jobType === "water" ? { ...world.waterLeak, label: "CLAMP MAIN" } : game.jobType === "pothole" ? { ...world.pothole, label: "COMPACT PATCH" } : game.jobType === "tree" ? { ...world.tree, label: "SECTION TREE" } : { ...world.drain, label: "STORM INLET" };
     }
     if (game.step === "verify") {
       if (game.jobType === "water" && game.waterValveClosed) return { ...world.valve, label: "RESTORE VALVE" };
-      return game.jobType === "water" ? { ...world.waterLeak, label: "PRESSURE TEST" } : game.jobType === "pothole" ? { ...world.pothole, label: "CHECK SURFACE" } : { ...world.drain, label: "STORM INLET" };
+      return game.jobType === "water" ? { ...world.waterLeak, label: "PRESSURE TEST" } : game.jobType === "pothole" ? { ...world.pothole, label: "CHECK SURFACE" } : game.jobType === "tree" ? { ...world.tree, label: "CHECK OVERHEAD" } : { ...world.drain, label: "STORM INLET" };
     }
     if (game.step === "cleanup") {
       const coneTargets = activeConeTargets();
@@ -1302,6 +1423,21 @@
       ctx.fillStyle = "#8e9693";
       ctx.beginPath(); ctx.arc(28, 24, 9, 0, Math.PI * 2); ctx.fill();
     }
+    if (game.carrying === "saw") {
+      ctx.save();
+      ctx.translate(24, 7);
+      ctx.rotate(.42);
+      fillRoundRect(-14, -8, 29, 18, 5, "#e87b27");
+      ctx.fillStyle = "#252e30";
+      ctx.fillRect(12, -4, 27, 8);
+      ctx.strokeStyle = "#c7d0ca";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(13, -4, 26, 8);
+      ctx.strokeStyle = "#20282a";
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(-4, -9, 8, Math.PI, 0); ctx.stroke();
+      ctx.restore();
+    }
     if (game.carrying === "locator") {
       ctx.fillStyle = "#e8b62e";
       ctx.fillRect(12, -5, 12, 19);
@@ -1364,15 +1500,15 @@
     ctx.fillText("SITE CONDITION", 32, 38);
     ctx.fillStyle = "#f8edcf";
     ctx.font = "900 17px ui-sans-serif, sans-serif";
-    ctx.fillText(`${game.jobType === "pothole" ? "FAILURE" : "RUNOFF"} ${Math.round(game.flood)}%`, 32, 59);
+    ctx.fillText(`${game.jobType === "tree" ? "INSTABILITY" : game.jobType === "pothole" ? "FAILURE" : "RUNOFF"} ${Math.round(game.flood)}%`, 32, 59);
     fillRoundRect(32, 66, 196, 5, 3, "rgba(105,133,139,.34)");
     const hazardColor = game.flood > 70 ? "#ff6a5e" : game.flood > 45 ? "#ffc24d" : "#55d9d0";
     fillRoundRect(32, 66, 196 * (game.flood / 100), 5, 3, hazardColor);
 
     const progress = {
-      locate: [game.jobType === "water" ? "LEAK LOCATION" : game.jobType === "pothole" ? "SURFACE INSPECTION" : "UTILITY LOCATE", game.locateWork],
-      clear: [game.jobType === "water" ? "CLAMP INSTALLATION" : game.jobType === "pothole" ? "PATCH COMPACTION" : "DRAIN CLEARANCE", game.work],
-      verify: [game.jobType === "water" ? "PRESSURE TEST" : game.jobType === "pothole" ? "SURFACE TEST" : "FLOW VERIFICATION", game.verifyWork]
+      locate: [game.jobType === "water" ? "LEAK LOCATION" : game.jobType === "pothole" ? "SURFACE INSPECTION" : game.jobType === "tree" ? "TENSION / WIRE CHECK" : "UTILITY LOCATE", game.locateWork],
+      clear: [game.jobType === "water" ? "CLAMP INSTALLATION" : game.jobType === "pothole" ? "PATCH COMPACTION" : game.jobType === "tree" ? "CONTROLLED CUTTING" : "DRAIN CLEARANCE", game.work],
+      verify: [game.jobType === "water" ? "PRESSURE TEST" : game.jobType === "pothole" ? "SURFACE TEST" : game.jobType === "tree" ? "OVERHEAD CLEARANCE" : "FLOW VERIFICATION", game.verifyWork]
     }[game.step];
     if (progress && progress[1] > 0) {
       fillRoundRect(W / 2 - 150, H - 78, 300, 52, 13, "rgba(7,20,25,.92)");
@@ -1414,13 +1550,14 @@
   }
 
   function updateHistoryNote() {
-    if (history.downstreamClog || history.waterOutage || history.weakClamp || history.failedPatch) {
+    if (history.downstreamClog || history.waterOutage || history.weakClamp || history.failedPatch || history.hangingLimb) {
       ui.historyNote.hidden = false;
       const callbacks = [];
       if (history.downstreamClog) callbacks.push("debris was pushed into the downstream drain");
       if (history.waterOutage) callbacks.push("Maple Diner was left without water service");
       if (history.weakClamp) callbacks.push("a temporary water-main clamp needs follow-up");
       if (history.failedPatch) callbacks.push("a rushed cold patch has begun failing");
+      if (history.hangingLimb) callbacks.push("a hanging limb remains above the streetlight wire");
       ui.historyNote.textContent = `CALLBACK: Last shift ${callbacks.join(" and ")}. Today's opening service score is reduced.`;
     } else if (history.shifts > 0) {
       ui.historyNote.hidden = false;
@@ -1438,13 +1575,13 @@
   }
 
   function syncDispatchBoard() {
-    const buttons = { drain: ui.startButton, water: ui.waterButton, pothole: ui.potholeButton };
+    const buttons = { drain: ui.startButton, water: ui.waterButton, pothole: ui.potholeButton, tree: ui.treeButton };
     Object.entries(buttons).forEach(([jobType, button]) => {
       const job = JOB_BOARD[jobType];
       const modifier = shiftModifier(jobType, history.shifts);
       button.textContent = `${job.number} · ${job.name} · ${modifier.label} · ${hazardPayLabel(modifier)}`;
     });
-    ui.shiftChip.innerHTML = '<span class="rain-dot"></span> Three calls waiting · 4:18 PM';
+    ui.shiftChip.innerHTML = '<span class="rain-dot"></span> Four calls waiting · 4:18 PM';
   }
 
   function syncUpgradeButton() {
@@ -1488,6 +1625,7 @@
   ui.startButton.addEventListener("click", () => startGame("drain"));
   ui.waterButton.addEventListener("click", () => startGame("water"));
   ui.potholeButton.addEventListener("click", () => startGame("pothole"));
+  ui.treeButton.addEventListener("click", () => startGame("tree"));
   ui.upgradeButton.addEventListener("click", purchaseRackUpgrade);
   ui.restartButton.addEventListener("click", () => startGame(game.jobType));
   ui.muteButton.addEventListener("click", () => {
@@ -1569,14 +1707,14 @@
   updateHistoryNote();
   syncMuteButton();
   syncUI();
-  if (["drain", "water", "pothole"].includes(qaTrafficJob)) {
+  if (["drain", "water", "pothole", "tree"].includes(qaTrafficJob)) {
     startGame(qaTrafficJob);
     game.conesPlaced = Array.from({ length: qaConeCount }, (_, index) => index);
     game.zoneSecured = qaConeCount === 3;
     game.step = game.zoneSecured ? "locator" : "cones";
     game.player = {
       ...game.player,
-      ...(qaTrafficJob === "pothole" ? { x: 690, y: 275 } : qaTrafficJob === "water" ? { x: 794, y: 348 } : { x: 664, y: 404 })
+      ...(qaTrafficJob === "pothole" ? { x: 690, y: 275 } : qaTrafficJob === "tree" ? { x: 705, y: 275 } : qaTrafficJob === "water" ? { x: 794, y: 348 } : { x: 664, y: 404 })
     };
     game.gradeReason = `TRAFFIC QA · Crew stationary with ${qaConeCount}/3 taper cones deployed.`;
     syncUI();

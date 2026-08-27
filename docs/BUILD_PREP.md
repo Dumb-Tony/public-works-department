@@ -1,7 +1,7 @@
 # Public Works Department — Build Preparation Package
 
 **Companion to:** `GDD.md`  
-**Current target:** First-playable release candidate 1.0 → hands-on tuning and accessibility patch 1.0.1
+**Current target:** Browser build 1.4 → four-call playtest tuning and accessibility pass
 **Scope rule:** Do not add a second location before the first call satisfies every P0 acceptance criterion.
 
 ## 1. Prioritized prototype backlog
@@ -46,6 +46,7 @@
 - [x] Add an interactable labeled valve box, visible customer outage, recovery, score penalty, and persistent wrong-valve callback.
 - [x] Add a selectable “water bubbling through pavement” dispatch using the same intersection, traffic, locator, valve, clamp, verification, and callback systems.
 - [x] Add a selectable pothole-collapse dispatch with surface inspection, shallow-utility marking, patch/compactor workflow, durable/rushed outcomes, verification, and callbacks.
+- [x] Add a selectable fallen-tree dispatch with wire/tension inspection, chainsaw/winch workflow, controlled/rushed outcomes, overhead verification, and a persistent hanging-limb callback.
 - [x] Add deterministic job-specific shift modifiers for rainfall, pressure, road base, traffic, hazard escalation, and service pressure.
 - [x] Preview each call's next deterministic condition on dispatch and scale successful payout with visible hazard-pay multipliers.
 - [x] Show a causal Today → Next Shift consequence card on every completed shift report, including clean no-callback outcomes.

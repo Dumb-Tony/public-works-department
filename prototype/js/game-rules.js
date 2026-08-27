@@ -32,6 +32,11 @@
       Object.freeze({ x: 590, y: 252 }),
       Object.freeze({ x: 640, y: 263 }),
       Object.freeze({ x: 690, y: 274 })
+    ]),
+    tree: Object.freeze([
+      Object.freeze({ x: 575, y: 252 }),
+      Object.freeze({ x: 625, y: 263 }),
+      Object.freeze({ x: 675, y: 274 })
     ])
   });
 
@@ -71,9 +76,11 @@
       waterOutage: Boolean(history.waterOutage),
       weakClamp: Boolean(history.weakClamp),
       failedPatch: Boolean(history.failedPatch),
+      hangingLimb: Boolean(history.hangingLimb),
       drainJobs: Number.isFinite(history.drainJobs) ? Math.max(0, Math.floor(history.drainJobs)) : 0,
       waterJobs: Number.isFinite(history.waterJobs) ? Math.max(0, Math.floor(history.waterJobs)) : 0,
       potholeJobs: Number.isFinite(history.potholeJobs) ? Math.max(0, Math.floor(history.potholeJobs)) : 0,
+      treeJobs: Number.isFinite(history.treeJobs) ? Math.max(0, Math.floor(history.treeJobs)) : 0,
       budget: Number.isFinite(history.budget) ? Math.max(0, Math.round(history.budget)) : 900,
       trust: Number.isFinite(history.trust) ? clamp(Math.round(history.trust), 0, 100) : 50,
       rackUpgrade: Boolean(history.rackUpgrade),
@@ -86,7 +93,7 @@
     return {
       safety: 100,
       service: clamp(100 - (history.downstreamClog ? 16 : 0) - (history.waterOutage ? 18 : 0), 0, 100),
-      quality: history.weakClamp || history.failedPatch ? 82 : 100
+      quality: history.weakClamp || history.failedPatch || history.hangingLimb ? 82 : 100
     };
   }
 
@@ -101,6 +108,7 @@
         waterOutage: false,
         weakClamp: false,
         failedPatch: false,
+        hangingLimb: false,
         lastResult: "Flood response missed"
       };
     }
@@ -110,6 +118,7 @@
         waterOutage: true,
         weakClamp: jobType === "water" && Boolean(rushed),
         failedPatch: jobType === "pothole" && Boolean(rushed),
+        hangingLimb: jobType === "tree" && Boolean(rushed),
         lastResult: jobType === "water"
           ? "Water main clamped; Maple Diner outage pending"
           : jobType === "pothole" ? "Road patched; Maple Diner outage pending" : "Drain open; Maple Diner water outage pending"
@@ -121,6 +130,7 @@
         waterOutage: false,
         weakClamp: true,
         failedPatch: false,
+        hangingLimb: false,
         lastResult: "Water restored; temporary clamp callback pending"
       };
     }
@@ -130,7 +140,18 @@
         waterOutage: false,
         weakClamp: false,
         failedPatch: true,
+        hangingLimb: false,
         lastResult: "Road reopened; cold patch callback pending"
+      };
+    }
+    if (rushed && jobType === "tree") {
+      return {
+        downstreamClog: false,
+        waterOutage: false,
+        weakClamp: false,
+        failedPatch: false,
+        hangingLimb: true,
+        lastResult: "Tree cleared; hanging limb callback pending"
       };
     }
     if (rushed) {
@@ -139,6 +160,7 @@
         waterOutage: false,
         weakClamp: false,
         failedPatch: false,
+        hangingLimb: false,
         lastResult: "Drain open; downstream blockage pending"
       };
     }
@@ -147,9 +169,11 @@
       waterOutage: false,
       weakClamp: false,
       failedPatch: false,
+      hangingLimb: false,
       lastResult: jobType === "water"
         ? "Water main clamped and pressure verified"
-        : jobType === "pothole" ? "Pothole compacted and surface verified" : "Drain cleared with no callback"
+        : jobType === "pothole" ? "Pothole compacted and surface verified"
+          : jobType === "tree" ? "Tree removed and overhead line verified" : "Drain cleared with no callback"
     };
   }
 
@@ -160,6 +184,7 @@
     if (outcome.waterOutage) callbacks.push({ cause: "Valve left closed", effect: "Maple Diner outage" });
     if (outcome.weakClamp) callbacks.push({ cause: "Temporary clamp", effect: "Water-main callback" });
     if (outcome.failedPatch) callbacks.push({ cause: "Dump-and-go patch", effect: "Pothole reopens" });
+    if (outcome.hangingLimb) callbacks.push({ cause: "Rushed tree pull", effect: "Hanging limb call" });
     if (callbacks.length === 0) {
       return {
         callback: false,
@@ -215,6 +240,11 @@
         { id: "commuter_peak", label: "Commuter peak", hazardRate: 1.08, trafficRate: 1.3, serviceRate: 1.1, rewardMultiplier: 1.2 },
         { id: "dry_base", label: "Dry pavement", hazardRate: 1, trafficRate: 1, serviceRate: 1, rewardMultiplier: 1 },
         { id: "saturated_base", label: "Saturated road base", hazardRate: 1.25, trafficRate: .95, serviceRate: 1.12, rewardMultiplier: 1.22 }
+      ],
+      tree: [
+        { id: "gusting_wind", label: "Gusting wind", hazardRate: 1.28, trafficRate: .92, serviceRate: 1.12, rewardMultiplier: 1.25 },
+        { id: "school_bus_route", label: "School bus route", hazardRate: 1.05, trafficRate: 1.28, serviceRate: 1.08, rewardMultiplier: 1.18 },
+        { id: "calm_cleanup", label: "Calm cleanup", hazardRate: 1, trafficRate: 1, serviceRate: 1, rewardMultiplier: 1 }
       ]
     };
     const list = variants[jobType] || variants.drain;
@@ -231,8 +261,8 @@
     const x = Number.isFinite(car.x) ? car.x : -100;
     if (!zoneSecured) return { drawY: y, speedMultiplier: 1, diverted: false };
 
-    const pothole = jobType === "pothole";
-    const affectedLane = pothole ? y < 300 : y >= 300;
+    const upperLaneJob = jobType === "pothole" || jobType === "tree";
+    const affectedLane = upperLaneJob ? y < 300 : y >= 300;
     if (!affectedLane) return { drawY: y, speedMultiplier: 1, diverted: false };
 
     const start = 520;
@@ -248,7 +278,7 @@
       factor = t * t * (3 - 2 * t);
     }
 
-    const routeY = pothole ? 222 : 294;
+    const routeY = upperLaneJob ? 222 : 294;
     return {
       drawY: y + (routeY - y) * factor,
       speedMultiplier: 1 - .52 * factor,
@@ -262,7 +292,7 @@
     const x = Number(position.x);
     const y = Number(position.y);
     if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
-    return jobType === "pothole"
+    return jobType === "pothole" || jobType === "tree"
       ? x >= 555 && x <= 805 && y >= 245 && y <= 312
       : x >= 555 && x <= 830 && y >= 310 && y <= 445;
   }

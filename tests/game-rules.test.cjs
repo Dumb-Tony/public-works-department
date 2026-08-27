@@ -51,9 +51,11 @@ test("history migration fills missing callback fields", () => {
     waterOutage: false,
     weakClamp: false,
     failedPatch: false,
+    hangingLimb: false,
     drainJobs: 0,
     waterJobs: 0,
     potholeJobs: 0,
+    treeJobs: 0,
     budget: 900,
     trust: 50,
     rackUpgrade: false,
@@ -68,6 +70,7 @@ test("persistent outcomes distinguish careful, rushed, and valve-outage results"
     waterOutage: false,
     weakClamp: false,
     failedPatch: false,
+    hangingLimb: false,
     lastResult: "Drain cleared with no callback"
   });
   assert.equal(rules.persistentOutcome({ success: true, rushed: true, waterValveClosed: false }).downstreamClog, true);
@@ -168,8 +171,8 @@ test("pothole taper diverts the upper lane and protects only the signed work are
 });
 
 test("routed cars physically clear every cone in both lane-specific tapers", () => {
-  for (const jobType of ["drain", "water", "pothole"]) {
-    const baseY = jobType === "pothole" ? 267 : 330;
+  for (const jobType of ["drain", "water", "pothole", "tree"]) {
+    const baseY = jobType === "pothole" || jobType === "tree" ? 267 : 330;
     for (const cone of rules.coneLayout(jobType)) {
       const car = rules.trafficRoute(jobType, { x: cone.x, y: baseY }, true);
       assert.ok(Math.abs(car.drawY - cone.y) >= 30, `${jobType} car overlaps cone at ${cone.x}`);
@@ -183,4 +186,22 @@ test("one deployed cone is enough to activate avoidance routing", () => {
   const withoutCone = rules.trafficRoute("drain", { x: 700, y: 330 }, false);
   assert.equal(withCone.drawY, 294);
   assert.equal(withoutCone.drawY, 330);
+});
+
+test("fallen-tree outcomes persist rushed hanging limbs and clear careful work", () => {
+  const rushed = rules.persistentOutcome({ success: true, rushed: true, waterValveClosed: false, jobType: "tree" });
+  assert.equal(rushed.hangingLimb, true);
+  assert.equal(rushed.lastResult, "Tree cleared; hanging limb callback pending");
+  const careful = rules.persistentOutcome({ success: true, rushed: false, waterValveClosed: false, jobType: "tree" });
+  assert.equal(careful.hangingLimb, false);
+  assert.equal(careful.lastResult, "Tree removed and overhead line verified");
+  assert.equal(rules.consequenceReport(rushed).effect, "Hanging limb call");
+});
+
+test("fallen-tree modifiers and cone taper use the upper-lane traffic plan", () => {
+  assert.equal(rules.shiftModifier("tree", 0).id, "gusting_wind");
+  assert.equal(rules.coneLayout("tree").length, 3);
+  assert.equal(rules.trafficRoute("tree", { x: 650, y: 267 }, true).drawY, 222);
+  assert.equal(rules.trafficRoute("tree", { x: 650, y: 330 }, true).drawY, 330);
+  assert.equal(rules.isCrewProtected("tree", { x: 705, y: 275 }, true), true);
 });
